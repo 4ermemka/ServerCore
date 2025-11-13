@@ -1,0 +1,3 @@
+[submodule "Assets/Shared"]
+	path = Assets/Shared
+	url = https://github.com/4ermemka/PrometheusTools.git
