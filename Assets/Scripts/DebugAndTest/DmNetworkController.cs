@@ -8,16 +8,33 @@ using UnityEngine;
 
 public sealed class DmNetworkController : MonoBehaviour
 {
-    [SerializeField] private int port = 7777;
+    [Header("Network")]
     [SerializeField] private string hostAddress = "127.0.0.1";
     [SerializeField] private string locahostAddress = "127.0.0.1";
+    [SerializeField] private int port = 7777;
+
+    [Header("Scene bindings")]
+    [SerializeField] private WorldStateMono worldStateMono;
+    [Header("Debug")]
+    [SerializeField] private bool logWorldChanges = true;
 
     private CancellationTokenSource _cts;
 
     private GameServer _server;
     private GameClient _client;
 
-    public SyncNode WorldState { get; private set; }
+
+    private NetworkedSpriteState _worldState;
+    public NetworkedSpriteState WorldState
+    {
+        get
+        {
+            if (_worldState == null && worldStateMono != null)
+                _worldState = worldStateMono.State;
+            return _worldState;
+        }
+    }
+
     private IGameSerializer _serializer;
 
     private void Awake()
