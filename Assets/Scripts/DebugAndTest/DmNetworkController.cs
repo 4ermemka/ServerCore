@@ -78,7 +78,7 @@ namespace Assets.Scripts.DebugAndTest
 
                 var clientTransport = new TcpClientTransport();
                 _client = new GameClient(clientTransport, WorldState, _serializer);
-                await _client.ConnectAsync("127.0.0.1", port, _cts.Token);
+                await _client.ConnectAsync(hostAddress, port, _cts.Token);
 
                 _client.ConnectedToHost += () => Debug.Log("[NET] Host local client connected");
                 _client.DisconnectedFromHost += () => Debug.Log("[NET] Host local client disconnected");
