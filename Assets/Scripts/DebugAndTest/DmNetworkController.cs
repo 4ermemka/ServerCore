@@ -13,6 +13,7 @@ namespace Assets.Scripts.DebugAndTest
     {
         [Header("Network")]
         [SerializeField] private string hostAddress = "127.0.0.1";
+        [SerializeField] private string locahostAddress = "127.0.0.1";
         [SerializeField] private int port = 7777;
 
         [Header("Scene bindings")]
@@ -78,7 +79,7 @@ namespace Assets.Scripts.DebugAndTest
 
                 var clientTransport = new TcpClientTransport();
                 _client = new GameClient(clientTransport, WorldState, _serializer);
-                await _client.ConnectAsync(hostAddress, port, _cts.Token);
+                await _client.ConnectAsync(locahostAddress, port, _cts.Token);
 
                 _client.ConnectedToHost += () => Debug.Log("[NET] Host local client connected");
                 _client.DisconnectedFromHost += () => Debug.Log("[NET] Host local client disconnected");
