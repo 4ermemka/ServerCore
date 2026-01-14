@@ -44,8 +44,7 @@ public sealed class DmNetworkController : MonoBehaviour
         // Инициализация WorldState и сериализатора
         // WorldState должен быть тем же объектом, который использует WorldStateMono
         // Пример:
-        // WorldState = new NetworkedSpriteState(); (наследник SyncNode)
-        // _serializer = new JsonGameSerializer();
+         _serializer = new JsonGameSerializer();
     }
 
     private void Update()
