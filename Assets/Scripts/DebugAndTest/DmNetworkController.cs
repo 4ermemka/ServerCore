@@ -63,25 +63,27 @@ namespace Assets.Scripts.DebugAndTest
         private void OnWorldChanged(FieldChange change)
         {
             var path = string.Join(".", change.Path.Select(p => p.Name));
-            Debug.Log($"[WORLD] {path}: {change.OldValue} -> {change.NewValue}");
+            //Debug.Log($"[WORLD] {path}: {change.OldValue} -> {change.NewValue}");
         }
-
         public async void StartAsHost()
         {
             await ShutdownNetworkAsync();
 
             try
             {
+                // 1. Запускаем сервер-роутер
                 var hostTransport = new TcpHostTransport();
-                _server = new GameServer(hostTransport, WorldState, _serializer);
+                _server = new GameServer(hostTransport, _serializer);
                 await _server.StartAsync("0.0.0.0", port, _cts.Token);
 
+                // 2. Запускаем локального клиента, который работает с WorldState
                 var clientTransport = new TcpClientTransport();
                 _client = new GameClient(clientTransport, WorldState, _serializer);
-                await _client.ConnectAsync(locahostAddress, port, _cts.Token);
 
                 _client.ConnectedToHost += () => Debug.Log("[NET] Host local client connected");
                 _client.DisconnectedFromHost += () => Debug.Log("[NET] Host local client disconnected");
+
+                await _client.ConnectAsync(locahostAddress, port, _cts.Token);
 
                 Debug.Log("[NET] Started as HOST");
             }
@@ -120,6 +122,7 @@ namespace Assets.Scripts.DebugAndTest
             await ShutdownNetworkAsync();
             Debug.Log("[NET] Network stopped");
         }
+
 
         private async Task ShutdownNetworkAsync()
         {
