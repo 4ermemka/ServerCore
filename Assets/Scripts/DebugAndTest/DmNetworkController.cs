@@ -9,38 +9,45 @@ using System.Threading.Tasks;
 
 namespace Assets.Scripts.DebugAndTest
 {
-    /// <summary>
-    /// Контроллер сетевой части для ведущих.
-    /// Позволяет запустить игру в роли хоста (Host) или клиента (Join),
-    /// поднимает GameServer/GameClient и держит общий WorldState.
-    /// </summary>
     public sealed class DmNetworkController : MonoBehaviour
     {
         [Header("Network")]
         [SerializeField] private string hostAddress = "127.0.0.1";
         [SerializeField] private int port = 7777;
 
+        [Header("Scene bindings")]
+        [SerializeField] private WorldStateMono worldStateMono;
+
         [Header("Debug")]
         [SerializeField] private bool logWorldChanges = true;
 
-        public WorldState WorldState { get; private set; }
+        private NetworkedSpriteState _worldState;
+        public NetworkedSpriteState WorldState
+        {
+            get
+            {
+                if (_worldState == null && worldStateMono != null)
+                    _worldState = worldStateMono.State;
+                return _worldState;
+            }
+        }
 
-        private GameServer _server;          // только у хоста
-        private GameClient _client;          // и у хоста, и у клиента
+        private GameServer _server;
+        private GameClient _client;
         private IGameSerializer _serializer;
-
         private CancellationTokenSource _cts;
 
         private void Awake()
         {
             _serializer = new JsonGameSerializer();
-            WorldState = new WorldState();
             _cts = new CancellationTokenSource();
+        }
 
-            if (logWorldChanges)
-            {
-                WorldState.Changed += OnWorldChanged;
-            }
+        private void Start()
+        {
+            var ws = WorldState;
+            if (logWorldChanges && ws != null)
+                ws.Changed += OnWorldChanged;
         }
 
         private void OnDestroy()
@@ -50,8 +57,6 @@ namespace Assets.Scripts.DebugAndTest
 
             _cts.Cancel();
             _cts.Dispose();
-
-            // асинхронно прибираем сеть
             _ = ShutdownNetworkAsync();
         }
 
@@ -61,10 +66,6 @@ namespace Assets.Scripts.DebugAndTest
             Debug.Log($"[WORLD] {path}: {change.OldValue} -> {change.NewValue}");
         }
 
-        /// <summary>
-        /// Запуск в роли хоста: поднимает TCP-сервер и локального клиента.
-        /// Вызывается, например, с UI‑кнопки.
-        /// </summary>
         public async void StartAsHost()
         {
             await ShutdownNetworkAsync();
@@ -91,9 +92,6 @@ namespace Assets.Scripts.DebugAndTest
             }
         }
 
-        /// <summary>
-        /// Запуск в роли клиента: подключение к уже запущенному хосту.
-        /// </summary>
         public async void StartAsClient()
         {
             await ShutdownNetworkAsync();
@@ -117,9 +115,6 @@ namespace Assets.Scripts.DebugAndTest
             }
         }
 
-        /// <summary>
-        /// Остановка сети (и для хоста, и для клиента).
-        /// </summary>
         public async void StopNetwork()
         {
             await ShutdownNetworkAsync();
@@ -130,17 +125,17 @@ namespace Assets.Scripts.DebugAndTest
         {
             if (_client != null)
             {
-                try { await _client.DisconnectAsync(_cts.Token); }
-                catch { /* ignore */ }
+                try { await _client.DisconnectAsync(_cts.Token); } catch { }
                 _client = null;
             }
 
             if (_server != null)
             {
-                try { await _server.StopAsync(_cts.Token); }
-                catch { /* ignore */ }
+                try { await _server.StopAsync(_cts.Token); } catch { }
                 _server = null;
             }
         }
     }
+
+
 }
