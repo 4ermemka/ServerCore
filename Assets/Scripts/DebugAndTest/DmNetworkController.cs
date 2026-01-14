@@ -18,7 +18,6 @@ namespace Assets.Scripts.DebugAndTest
 
         [Header("Scene bindings")]
         [SerializeField] private WorldStateMono worldStateMono;
-
         [Header("Debug")]
         [SerializeField] private bool logWorldChanges = true;
 
