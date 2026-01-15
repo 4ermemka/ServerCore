@@ -1,6 +1,8 @@
 ﻿using Assets.Shared.Model;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using static UnityEngine.GraphicsBuffer;
 
 namespace Assets.Scripts.DebugAndTest
 {
@@ -14,20 +16,20 @@ namespace Assets.Scripts.DebugAndTest
         public void Initialize(BoxData data)
         {
             _data = data;
+
+            _data.Patched += () => {
+                MoveTo(_data.Position);
+            };
+
             _camera = Camera.main;
 
             // начальная позиция визуала по данным
             transform.position = new Vector3(_data.Position.x, _data.Position.y, 0f);
         }
 
-        private void LateUpdate()
-        {
-            if (_data == null)
-                return;
-
-            // каждый кадр подтягиваем позицию из данных
-            var pos = _data.Position;
-            transform.position = new Vector3(pos.x, pos.y, transform.position.z);
+        public void MoveTo(Vector2 newPos)
+        { 
+            transform.position = new Vector2(newPos.x, newPos.y);
         }
 
         // Простейшее перетаскивание для дебага
@@ -39,13 +41,18 @@ namespace Assets.Scripts.DebugAndTest
 
         public void OnDrag(PointerEventData eventData)
         {
-            if (_data == null)
-                return;
-
             var world = ScreenToWorld(eventData.position);
             var target = world + _offset;
+            transform.position = new Vector2(target.x, target.y);
+        }
 
+        public void OnEndDrag(PointerEventData eventData)
+        {
+            if (_data == null)
+                return;
             // ВАЖНО: меняем только данные, визуал сам подтянется в LateUpdate
+            var world = ScreenToWorld(eventData.position);
+            var target = world + _offset;
             _data.Position = new Vector2(target.x, target.y);
         }
 
