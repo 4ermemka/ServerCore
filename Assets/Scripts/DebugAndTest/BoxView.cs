@@ -7,7 +7,7 @@ using static UnityEngine.GraphicsBuffer;
 namespace Assets.Scripts.DebugAndTest
 {
 
-    public sealed class BoxView : MonoBehaviour, IDragHandler, IBeginDragHandler
+    public sealed class BoxView : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler
     {
         private BoxData _data;
         private Camera _camera;
