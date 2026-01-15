@@ -9,22 +9,18 @@ namespace Assets.Scripts.DebugAndTest
         [SerializeField] private WorldDataHolder _worldDataHolder;
         [SerializeField] private BoxView _boxPrefab; // префаб ящика
 
-        private readonly List<BoxView> _boxes = new List<BoxView>();
+        private BoxView _box;
 
         private void Start()
         {
             var data = _worldDataHolder.Data;
 
-            // Для каждого BoxData — создаём визуальный ящик и даём ему ссылку на данные
-            for (int i = 0; i < data.Boxes.Count; i++)
-            {
-                var boxData = data.Boxes[i];
+            var boxData = data.Box;
 
-                var view = Instantiate(_boxPrefab, transform);
-                view.Initialize(boxData);
+            var view = Instantiate(_boxPrefab, transform);
+            view.Initialize(boxData);
 
-                _boxes.Add(view);
-            }
+            _box = view;
         }
     }
 

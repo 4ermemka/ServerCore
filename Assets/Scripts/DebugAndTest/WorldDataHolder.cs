@@ -9,14 +9,10 @@ public sealed class WorldDataHolder : MonoBehaviour
     {
         Data = new WorldData();
 
-        // В тесте создадим три бокса
-        for (int i = -2; i <= 2; i++)
+        Data.Box = new BoxData()
         {
-            Data.Boxes.Add(new BoxData
-            {
-                Position = new Vector2(i * 3f, 0f)
-            });
-        }
+            Position = new Vector2(0f, 0f)
+        };
     }
 }
 
