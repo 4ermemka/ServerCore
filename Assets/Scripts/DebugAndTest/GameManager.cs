@@ -15,7 +15,7 @@ namespace Assets.Scripts.DebugAndTest
         {
             var data = _worldDataHolder.Data;
 
-            var boxData = data.Box;
+            var boxData = data.BoxData;
 
             var view = Instantiate(_boxPrefab, transform);
             view.Initialize(boxData);

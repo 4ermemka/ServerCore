@@ -9,7 +9,7 @@ public sealed class WorldDataHolder : MonoBehaviour
     {
         Data = new WorldData();
 
-        Data.Box = new BoxData()
+        Data.BoxData = new BoxData()
         {
             Position = new Vector2(0f, 0f)
         };
