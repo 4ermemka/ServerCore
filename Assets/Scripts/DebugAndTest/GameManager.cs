@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Assets.Scripts.DebugAndTest
 {
@@ -9,18 +7,14 @@ namespace Assets.Scripts.DebugAndTest
         [SerializeField] private WorldDataHolder _worldDataHolder;
         [SerializeField] private BoxView _boxPrefab; // префаб ящика
 
-        private BoxView _box;
-
         private void Start()
         {
             var data = _worldDataHolder.Data;
-
-            var boxData = data.BoxData;
-
-            var view = Instantiate(_boxPrefab, transform);
-            view.Initialize(boxData);
-
-            _box = view;
+            foreach(var boxData in data.Boxes)
+            {
+                var view = Instantiate(_boxPrefab, transform);
+                view.Initialize(boxData);
+            }
         }
     }
 

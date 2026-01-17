@@ -1,5 +1,6 @@
 using Assets.Shared.Model;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public sealed class WorldDataHolder : MonoBehaviour
 {
@@ -9,10 +10,13 @@ public sealed class WorldDataHolder : MonoBehaviour
     {
         Data = new WorldData();
 
-        Data.BoxData = new BoxData()
+        for (int i = -2; i <= 2; i++)
         {
-            Position = new Vector2(0f, 0f)
-        };
+            var newBox = new BoxData()
+            {
+                Position = new Vector2(0f + i, 0f)
+            };
+        }
     }
 }
 
