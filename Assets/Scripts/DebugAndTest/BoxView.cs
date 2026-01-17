@@ -1,4 +1,5 @@
-﻿using Assets.Shared.Model;
+﻿using Assets.Shared.ChangeDetector;
+using Assets.Shared.Model;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -19,6 +20,7 @@ namespace Assets.Scripts.DebugAndTest
 
             _data.Patched += () => {
                 MoveTo(_data.Position);
+                Debug.Log("Box moved due to patch!");
             };
 
             _camera = Camera.main;
