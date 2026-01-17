@@ -16,6 +16,7 @@ public sealed class WorldDataHolder : MonoBehaviour
             {
                 Position = new Vector2(0f + i, 0f)
             };
+            Data.Boxes.Add(newBox);
         }
     }
 }
