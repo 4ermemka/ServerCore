@@ -14,7 +14,7 @@ namespace Assets.Scripts.DebugAndTest
         {
             var data = _worldDataHolder.Data;
 
-            //Subscribe();
+            Subscribe();
 
             data.SnapshotApplied += Subscribe;
         }
