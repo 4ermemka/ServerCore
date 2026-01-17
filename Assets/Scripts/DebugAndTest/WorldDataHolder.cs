@@ -1,7 +1,5 @@
-using Assets.Shared.ChangeDetector;
 using Assets.Shared.Model;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public sealed class WorldDataHolder : MonoBehaviour
 {
@@ -18,8 +16,12 @@ public sealed class WorldDataHolder : MonoBehaviour
                 Position = new Vector2(0f + i, 0f)
             };
             Data.Boxes.Add(newBox);
-        }
+            newBox.Patched += () => { Debug.Log($"One of boxes patched: {newBox.Position.ToString()}"); };
 
+        }
+        
+        Data.Patched += () => { Debug.Log($"Data.Patched"); };
+        Data.Boxes.Patched += () => { Debug.Log($"Data.Boxes.Patched"); };
     }
 }
 
