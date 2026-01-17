@@ -1,3 +1,4 @@
+using Assets.Shared.ChangeDetector;
 using Assets.Shared.Model;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -18,6 +19,7 @@ public sealed class WorldDataHolder : MonoBehaviour
             };
             Data.Boxes.Add(newBox);
         }
+
     }
 }
 
