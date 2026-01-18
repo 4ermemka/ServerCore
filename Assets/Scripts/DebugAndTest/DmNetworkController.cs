@@ -79,7 +79,7 @@ namespace Assets.Scripts.DebugAndTest
             Debug.Log("[NET] StartAsClient called");
 
             await ShutdownNetworkAsync();
-
+                
             try
             {
                 Debug.Log("[NET] Creating TcpClientTransport for client");
@@ -90,6 +90,7 @@ namespace Assets.Scripts.DebugAndTest
 
                 Debug.Log($"[NET] Connecting client to {host}:{port}");
                 await _client.ConnectAsync(host, port, _cts.Token);
+                await _client.RequestSnapshotAsync(); // отдельный метод, вызываемый только для не-хоста
                 Debug.Log("[NET] Client connected");
             }
             catch (Exception ex)

@@ -1,12 +1,9 @@
 ﻿using Assets.Shared.Model;
-using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using static UnityEngine.GraphicsBuffer;
 
 namespace Assets.Scripts.DebugAndTest
 {
-
     public sealed class BoxView : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler
     {
         private BoxData _data;
@@ -19,6 +16,7 @@ namespace Assets.Scripts.DebugAndTest
 
             _data.Patched += () => {
                 MoveTo(_data.Position);
+                Debug.Log("Box moved due to patch!");
             };
 
             _camera = Camera.main;
