@@ -14,15 +14,18 @@ namespace Assets.Scripts.DebugAndTest
         {
             _data = data;
 
-            _data.Patched += () => {
-                MoveTo(_data.Position);
-                Debug.Log("Box moved due to patch!");
-            };
+            _data.Patched += UpdatePosition;
 
             _camera = Camera.main;
 
             // начальная позиция визуала по данным
             transform.position = new Vector3(_data.Position.Value.x, _data.Position.Value.y, 0f);
+        }
+
+        public void UpdatePosition()
+        {
+            MoveTo(_data.Position);
+            Debug.Log("Box moved due to patch!");
         }
 
         public void MoveTo(Vector2 newPos)
@@ -63,6 +66,11 @@ namespace Assets.Scripts.DebugAndTest
                 return ray.GetPoint(enter);
             }
             return transform.position;
+        }
+
+        private void OnDestroy()
+        {
+            _data.Patched -= UpdatePosition;
         }
     }
 
