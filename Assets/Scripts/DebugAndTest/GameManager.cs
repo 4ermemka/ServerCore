@@ -16,15 +16,15 @@ namespace Assets.Scripts.DebugAndTest
             var data = _worldDataHolder.Data;
 
             data.SnapshotApplied += Subscribe;
+            data.Boxes.Patched += Subscribe;
 
             for (int i = -2; i <= 2; i++)
             {
-                var newBox = new BoxData();
-                newBox.Position.Value = new Vector2(i * 2f, 0f);
+                var newBox = new BoxData(new Vector2(i * 3f, 0f));
                 data.Boxes.Add(newBox);
             }
 
-            data.Boxes.Patched += Subscribe;
+            Subscribe();
         }
 
         private void Subscribe()

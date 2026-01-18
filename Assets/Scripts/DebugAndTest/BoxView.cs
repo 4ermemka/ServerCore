@@ -51,7 +51,7 @@ namespace Assets.Scripts.DebugAndTest
             // ВАЖНО: меняем только данные, визуал сам подтянется в LateUpdate
             var world = ScreenToWorld(eventData.position);
             var target = world + _offset;
-            _data.Position.Value = new Vector2(target.x, target.y);
+            _data.Move(new Vector2(target.x, target.y));
         }
 
         private Vector3 ScreenToWorld(Vector2 screenPos)
