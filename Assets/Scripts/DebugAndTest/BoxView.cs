@@ -22,7 +22,7 @@ namespace Assets.Scripts.DebugAndTest
             _camera = Camera.main;
 
             // начальная позиция визуала по данным
-            transform.position = new Vector3(_data.Position.x, _data.Position.y, 0f);
+            transform.position = new Vector3(_data.Position.Value.x, _data.Position.Value.y, 0f);
         }
 
         public void MoveTo(Vector2 newPos)
@@ -51,7 +51,7 @@ namespace Assets.Scripts.DebugAndTest
             // ВАЖНО: меняем только данные, визуал сам подтянется в LateUpdate
             var world = ScreenToWorld(eventData.position);
             var target = world + _offset;
-            _data.Position = new Vector2(target.x, target.y);
+            _data.Position.Value = new Vector2(target.x, target.y);
         }
 
         private Vector3 ScreenToWorld(Vector2 screenPos)
