@@ -46,7 +46,8 @@ namespace Assets.Scripts.DebugAndTest
         {
             if (_boxesOnBoard.Count > 0)
             {
-                foreach (BoxData box in _boxesOnBoard.Keys)
+                var keys = _boxesOnBoard.Keys.ToList();
+                foreach (BoxData box in keys)
                 {
                     Destroy(_boxesOnBoard[box].gameObject);
                     _boxesOnBoard.Remove(box);
