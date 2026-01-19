@@ -19,12 +19,16 @@ namespace Assets.Scripts.DebugAndTest
         private GameClient _client;
         private GameServer _server;
         private IGameSerializer _serializer;
+        private IGameSerializer _patchSerializer;
+        private IGameSerializer _snapshotSerializer;
         private CancellationTokenSource _cts;
 
         private void Awake()
         {
             _cts = new CancellationTokenSource();
             _serializer = new JsonGameSerializer();
+            _patchSerializer = new PatchSerializer();
+            _snapshotSerializer = new SnapshotSerializer();
         }
 
         private void Update()
