@@ -1,5 +1,6 @@
 ﻿using Assets.Shared.Model;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Assets.Scripts.DebugAndTest
@@ -9,31 +10,46 @@ namespace Assets.Scripts.DebugAndTest
         [SerializeField] private WorldDataHolder _worldDataHolder;
         [SerializeField] private BoxView _boxPrefab; // префаб ящика
 
-        private List<BoxView> _boxesOnBoard = new List<BoxView>();
+        private Dictionary<BoxData, BoxView> _boxesOnBoard = new Dictionary<BoxData, BoxView>();
 
         private void Start()
         {
             var data = _worldDataHolder.Data;
 
-            data.SnapshotApplied += Subscribe;
-            data.Boxes.Patched += Subscribe;
-
-            for (int i = -2; i <= 2; i++)
-            {
-                var newBox = new BoxData(new Vector2(i * 3f, 0f));
-                data.Boxes.Add(newBox);
-            }
-
-            Subscribe();
+            data.SnapshotApplied += Redraw;
+            data.Boxes.Patched += Redraw;
         }
 
-        private void Subscribe()
+        public void SpawnBox()
+        {
+            var newBox = new BoxData(Vector2.zero);
+            _worldDataHolder.Data.Boxes.Add(newBox);
+
+            var view = Instantiate(_boxPrefab, transform);
+            view.Initialize(newBox);
+            _boxesOnBoard.Add(newBox, view);
+        }
+
+        public void DeleteLastBox()
+        {
+            var data = _worldDataHolder.Data;
+            var lastBoxData = data.Boxes.LastOrDefault();
+            if (lastBoxData != null)
+            {
+                data.Boxes.Remove(lastBoxData);
+                Destroy(_boxesOnBoard[lastBoxData].gameObject);
+                _boxesOnBoard.Remove(lastBoxData);
+            }
+        }
+
+        public void Redraw()
         {
             if (_boxesOnBoard.Count > 0)
-            { 
-                foreach (BoxView box in _boxesOnBoard)
+            {
+                foreach (BoxData box in _boxesOnBoard.Keys)
                 {
-                    Destroy(box.gameObject);
+                    Destroy(_boxesOnBoard[box].gameObject);
+                    _boxesOnBoard.Remove(box);
                 }
             }
 
@@ -42,9 +58,10 @@ namespace Assets.Scripts.DebugAndTest
             {
                 var view = Instantiate(_boxPrefab, transform);
                 view.Initialize(boxData);
-                _boxesOnBoard.Add(view);
+                _boxesOnBoard.Add(boxData, view);
             }
-            Debug.Log($"SUBSCRIBED!");
+
+            Debug.Log($"REDRAWED, count:{_boxesOnBoard.Count}!");
         }
     }
 
