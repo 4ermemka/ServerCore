@@ -1,4 +1,5 @@
 ﻿using Assets.Shared.Model;
+using Assets.Shared.Model.Extensions;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -24,7 +25,7 @@ namespace Assets.Scripts.DebugAndTest
 
         public void UpdatePosition()
         {
-            MoveTo(_data.Position);
+            MoveTo(_data.Position.Value.FromVector2DTO());
             Debug.Log("Box moved due to patch!");
         }
 

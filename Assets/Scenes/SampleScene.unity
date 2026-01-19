@@ -1033,8 +1033,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _worldDataHolder: {fileID: 733916549}
-  port: 7777
-  host: 192.168.0.102
+  port: 25565
+  host: 26.13.92.69
   localHost: 127.0.0.1
 --- !u!1 &1582651186
 GameObject:
