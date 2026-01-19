@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Assets.Shared.Model;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Assets.Scripts.DebugAndTest
@@ -14,9 +15,16 @@ namespace Assets.Scripts.DebugAndTest
         {
             var data = _worldDataHolder.Data;
 
-            Subscribe();
-
             data.SnapshotApplied += Subscribe;
+            data.Boxes.Patched += Subscribe;
+
+            for (int i = -2; i <= 2; i++)
+            {
+                var newBox = new BoxData(new Vector2(i * 3f, 0f));
+                data.Boxes.Add(newBox);
+            }
+
+            Subscribe();
         }
 
         private void Subscribe()

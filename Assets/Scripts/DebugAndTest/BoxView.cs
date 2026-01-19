@@ -1,4 +1,5 @@
 ﻿using Assets.Shared.Model;
+using Assets.Shared.Model.Extensions;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -14,15 +15,18 @@ namespace Assets.Scripts.DebugAndTest
         {
             _data = data;
 
-            _data.Patched += () => {
-                MoveTo(_data.Position);
-                Debug.Log("Box moved due to patch!");
-            };
+            _data.Patched += UpdatePosition;
 
             _camera = Camera.main;
 
             // начальная позиция визуала по данным
-            transform.position = new Vector3(_data.Position.x, _data.Position.y, 0f);
+            transform.position = new Vector3(_data.Position.Value.x, _data.Position.Value.y, 0f);
+        }
+
+        public void UpdatePosition()
+        {
+            MoveTo(_data.Position.Value.FromVector2DTO());
+            Debug.Log("Box moved due to patch!");
         }
 
         public void MoveTo(Vector2 newPos)
@@ -51,7 +55,7 @@ namespace Assets.Scripts.DebugAndTest
             // ВАЖНО: меняем только данные, визуал сам подтянется в LateUpdate
             var world = ScreenToWorld(eventData.position);
             var target = world + _offset;
-            _data.Position = new Vector2(target.x, target.y);
+            _data.Move(new Vector2(target.x, target.y));
         }
 
         private Vector3 ScreenToWorld(Vector2 screenPos)
@@ -63,6 +67,11 @@ namespace Assets.Scripts.DebugAndTest
                 return ray.GetPoint(enter);
             }
             return transform.position;
+        }
+
+        private void OnDestroy()
+        {
+            _data.Patched -= UpdatePosition;
         }
     }
 
