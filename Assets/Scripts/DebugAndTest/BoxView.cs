@@ -34,6 +34,11 @@ namespace Assets.Scripts.DebugAndTest
             transform.position = new Vector2(newPos.x, newPos.y);
         }
 
+        public void Delete()
+        {
+            Destroy(this);
+        }
+
         // Простейшее перетаскивание для дебага
         public void OnBeginDrag(PointerEventData eventData)
         {
