@@ -1,37 +1,61 @@
-﻿using UnityEngine;
+﻿using Assets.Scripts.DebugAndTest;
+using Assets.Shared.Model;
+using Newtonsoft.Json;
+using UnityEngine;
 
-namespace Assets.Scripts.DebugAndTest
+public sealed class GameManager : MonoBehaviour
 {
-    public sealed class GameManager : MonoBehaviour
+    [SerializeField] private WorldDataHolder _worldDataHolder;
+    [SerializeField] public BoxDataView _prefab;
+
+    private BoxDataView _box = null;
+    //[SerializeField] public TextMeshProUGUI TextSlot;
+
+    protected WorldState _worldState;
+
+    private void Start()
     {
-        [SerializeField] private WorldDataHolder _worldDataHolder;
-        [SerializeField] private BoxView _boxPrefab; // префаб ящика
+        _worldState = new WorldState();
 
-        private BoxView _boxesOnBoard;
+        // Подписываемся на изменения для отправки в сеть
+        _worldState.Changed += OnLocalStateChanged;
 
-        private void Start()
-        {
-            var data = _worldDataHolder.Data;
+        // Подписываемся на патчи для локальной реакции
+        _worldState.Patched += OnStatePatched;
+        // Принудительное обновление текста
 
-            data.SnapshotApplied += Redraw;
-            data.Box.Patched += Redraw;
-        }
-
-        public void Redraw()
-        {
-            if (_boxesOnBoard != null)
-            {
-                Destroy(_boxesOnBoard.gameObject);
-            }
-
-            var data = _worldDataHolder.Data;
-            
-                var view = Instantiate(_boxPrefab, transform);
-                view.Initialize(data.Box);
-                _boxesOnBoard = view;
-
-            Debug.Log($"REDRAWED");
-        }
+        Redraw();
     }
 
+    private void OnLocalStateChanged(string path, object oldValue, object newValue)
+    {
+        // Формируем и отправляем сетевой патч
+        var patch = new
+        {
+            Type = "patch",
+            Path = path,
+            OldValue = oldValue,
+            NewValue = newValue
+        };
+
+        Debug.Log($"LocalPatch: {JsonConvert.SerializeObject(patch)}");
+    }
+
+    private void OnStatePatched(string path, object value)
+    {
+        // Локальная реакция на изменения (UI, звуки, эффекты)
+
+        Debug.Log($"External patch: {path} : {value}");
+    }
+
+    private void Redraw()
+    {
+        if (_box != null)
+        { 
+            Destroy(_box.gameObject);
+        }
+
+        var box = Instantiate(_prefab, transform);
+        box.Initialize(_worldState?.BoxData);
+    }
 }

@@ -1,16 +1,12 @@
-using Assets.Shared.ChangeDetector;
 using Assets.Shared.Model;
+using Assets.Shared.SyncSystem.Core;
+using Newtonsoft.Json;
+using TMPro;
 using UnityEngine;
 
 public sealed class WorldDataHolder : MonoBehaviour
 {
     [SerializeField]
-    [SyncField]
-    public WorldData Data { get; set; } = new();
+    public WorldState WorldState;
 
-    private void Awake()
-    {
-        Data = new WorldData();
-    }
 }
-
