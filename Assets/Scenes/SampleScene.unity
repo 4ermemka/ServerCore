@@ -930,7 +930,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9d026161a5492b740928b9fbff2f602d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TextSlot: {fileID: 2082133211}
 --- !u!4 &733916550
 Transform:
   m_ObjectHideFlags: 0
@@ -1110,7 +1109,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _worldDataHolder: {fileID: 733916549}
-  _boxPrefab: {fileID: 5718511403337517769, guid: dd60ed0909e1df44da719f813a107f67, type: 3}
+  _prefab: {fileID: 5718511403337517769, guid: dd60ed0909e1df44da719f813a107f67, type: 3}
 --- !u!4 &1039817484
 Transform:
   m_ObjectHideFlags: 0
@@ -1980,8 +1979,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1051.16, y: 1080}
+  m_AnchoredPosition: {x: -764.55, y: 184.16}
+  m_SizeDelta: {x: 390.89, y: 711.69}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2082133211
 MonoBehaviour:
@@ -2066,7 +2065,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 29.195587, z: 0, w: 24.70398}
+  m_margin: {x: 29.195465, y: 29.195587, z: 38.178802, w: 24.70398}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
