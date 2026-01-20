@@ -1,7 +1,4 @@
-﻿using Assets.Shared.Model;
-using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Assets.Scripts.DebugAndTest
 {
@@ -10,59 +7,30 @@ namespace Assets.Scripts.DebugAndTest
         [SerializeField] private WorldDataHolder _worldDataHolder;
         [SerializeField] private BoxView _boxPrefab; // префаб ящика
 
-        private Dictionary<BoxData, BoxView> _boxesOnBoard = new Dictionary<BoxData, BoxView>();
+        private BoxView _boxesOnBoard;
 
         private void Start()
         {
             var data = _worldDataHolder.Data;
 
             data.SnapshotApplied += Redraw;
-            data.Boxes.Patched += Redraw;
-        }
-
-        public void SpawnBox()
-        {
-            var newBox = new BoxData(Vector2.zero);
-            _worldDataHolder.Data.Boxes.Add(newBox);
-
-            var view = Instantiate(_boxPrefab, transform);
-            view.Initialize(newBox);
-            _boxesOnBoard.Add(newBox, view);
-        }
-
-        public void DeleteLastBox()
-        {
-            var data = _worldDataHolder.Data;
-            var lastBoxData = data.Boxes.LastOrDefault();
-            if (lastBoxData != null)
-            {
-                data.Boxes.Remove(lastBoxData);
-                Destroy(_boxesOnBoard[lastBoxData].gameObject);
-                _boxesOnBoard.Remove(lastBoxData);
-            }
+            data.Box.Patched += Redraw;
         }
 
         public void Redraw()
         {
-            if (_boxesOnBoard.Count > 0)
+            if (_boxesOnBoard != null)
             {
-                var keys = _boxesOnBoard.Keys.ToList();
-                foreach (BoxData box in keys)
-                {
-                    Destroy(_boxesOnBoard[box].gameObject);
-                    _boxesOnBoard.Remove(box);
-                }
+                Destroy(_boxesOnBoard.gameObject);
             }
 
             var data = _worldDataHolder.Data;
-            foreach (var boxData in data.Boxes)
-            {
+            
                 var view = Instantiate(_boxPrefab, transform);
-                view.Initialize(boxData);
-                _boxesOnBoard.Add(boxData, view);
-            }
+                view.Initialize(data.Box);
+                _boxesOnBoard = view;
 
-            Debug.Log($"REDRAWED, count:{_boxesOnBoard.Count}!");
+            Debug.Log($"REDRAWED");
         }
     }
 
