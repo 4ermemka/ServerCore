@@ -7,6 +7,6 @@ using UnityEngine;
 public sealed class WorldDataHolder : MonoBehaviour
 {
     [SerializeField]
-    public WorldState WorldState;
+    public WorldState WorldState = new();
 
 }
