@@ -15,8 +15,7 @@ public sealed class GameManager : MonoBehaviour
 
     private void Start()
     {
-        _worldState = new WorldState();
-
+        _worldState = _worldDataHolder.WorldState;
         // Подписываемся на изменения для отправки в сеть
         _worldState.Changed += OnLocalStateChanged;
 

@@ -25,6 +25,14 @@ namespace Assets.Scripts.DebugAndTest
             _cts = new CancellationTokenSource();
         }
 
+        private void Start()
+        {
+            if (_worldDataHolder.WorldState == null)
+            {
+                _worldDataHolder.WorldState = new();
+            }
+        }
+
         private void Update()
         {
             _client?.Update();
