@@ -74,7 +74,7 @@ namespace Assets.Scripts.DebugAndTest
 
         private void OnDestroy()
         {
-            _data.Patched -= UpdatePosition;
+            _data.Position.Patched -= UpdatePosition;
         }
     }
 
