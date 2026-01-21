@@ -35,7 +35,7 @@ public sealed class GameManager : MonoBehaviour
         //    _worldState.Boxes.Add(newBoxData);
         //}
 
-        Redraw(null, null);
+        //Redraw(null, null);
     }
 
     public void SpawnBox()
