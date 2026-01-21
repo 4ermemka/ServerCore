@@ -1,6 +1,7 @@
 ﻿using Assets.Scripts.DebugAndTest;
 using Assets.Shared.Model;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class GameManager : MonoBehaviour
@@ -8,7 +9,7 @@ public sealed class GameManager : MonoBehaviour
     [SerializeField] private WorldDataHolder _worldDataHolder;
     [SerializeField] public BoxDataView _prefab;
 
-    private BoxDataView _box = null;
+    private List<BoxDataView> _boxes = null;
     //[SerializeField] public TextMeshProUGUI TextSlot;
 
     protected WorldState _worldState;
@@ -20,11 +21,19 @@ public sealed class GameManager : MonoBehaviour
         // Подписываемся на изменения для отправки в сеть
         _worldState.Changed += OnLocalStateChanged;
 
-        // Подписываемся на патчи для локальной реакции
-        _worldState.Patched += OnStatePatched;
-        // Принудительное обновление текста
+        _worldState.Patched += Redraw;
+        _worldState.Boxes.Patched += Redraw;
 
-        Redraw();
+        int n = 5;
+
+        for (int i = 0; i < n; i++)
+        {
+            BoxData newBoxData = new BoxData();
+            newBoxData.Position.Value = new Vector2Dto((i-n/2)*3f, 0f);
+            _worldState.Boxes.Add(newBoxData);
+        }
+
+        Redraw(null, null);
     }
 
     private void OnLocalStateChanged(string path, object oldValue, object newValue)
@@ -41,21 +50,21 @@ public sealed class GameManager : MonoBehaviour
         Debug.Log($"LocalPatch: {JsonConvert.SerializeObject(patch)}");
     }
 
-    private void OnStatePatched(string path, object value)
+    private void Redraw(string path, object newValue)
     {
-        // Локальная реакция на изменения (UI, звуки, эффекты)
-
-        Debug.Log($"External patch: {path} : {value}");
-    }
-
-    private void Redraw()
-    {
-        if (_box != null)
-        { 
-            Destroy(_box.gameObject);
+        Debug.Log($"Redrawing due to patch on {path}");
+        if (_boxes != null)
+        {
+            foreach (var box in _boxes)
+            {
+                Destroy(box.gameObject);
+            }
         }
 
-        var box = Instantiate(_prefab, transform);
-        box.Initialize(_worldState?.BoxData);
+        foreach (var boxData in _worldState.Boxes)
+        { 
+            var box = Instantiate(_prefab, transform);
+            box.Initialize(boxData);
+        }
     }
 }
