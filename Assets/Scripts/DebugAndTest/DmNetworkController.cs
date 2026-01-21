@@ -18,13 +18,15 @@ namespace Assets.Scripts.DebugAndTest
 
         private GameClient _client;
         private GameServer _server;
-        private IGameSerializer _serializer;
         private CancellationTokenSource _cts;
 
         private void Awake()
         {
             _cts = new CancellationTokenSource();
-            _serializer = new JsonGameSerializer();
+        }
+
+        private void Start()
+        {
         }
 
         private void Update()
@@ -44,7 +46,7 @@ namespace Assets.Scripts.DebugAndTest
                 var hostTransport = new TcpHostTransport();
 
                 Debug.Log("[NET] Creating GameServer");
-                _server = new GameServer(hostTransport, _serializer);
+                _server = new GameServer(hostTransport);
 
                 Debug.Log($"[NET] Starting server on 0.0.0.0:{port}");
                 await _server.StartAsync("0.0.0.0", port, _cts.Token);
@@ -54,7 +56,7 @@ namespace Assets.Scripts.DebugAndTest
                 var clientTransport = new TcpClientTransport();
 
                 Debug.Log("[NET] Creating GameClient (Host local)");
-                _client = new GameClient(clientTransport, _worldDataHolder.Data, _serializer);
+                _client = new GameClient(clientTransport, _worldDataHolder.WorldState);
 
                 Debug.Log($"[NET] Connecting host local client to {localHost}:{port}");
                 await _client.ConnectAsync(localHost, port, _cts.Token);
@@ -86,7 +88,7 @@ namespace Assets.Scripts.DebugAndTest
                 var transport = new TcpClientTransport();
 
                 Debug.Log("[NET] Creating GameClient (Client)");
-                _client = new GameClient(transport, _worldDataHolder.Data, _serializer);
+                _client = new GameClient(transport, _worldDataHolder.WorldState);
 
                 Debug.Log($"[NET] Connecting client to {host}:{port}");
                 await _client.ConnectAsync(host, port, _cts.Token);
