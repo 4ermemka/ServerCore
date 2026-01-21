@@ -1,69 +1,61 @@
-﻿using Assets.Shared.Model;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Assets.Scripts.DebugAndTest;
+using Assets.Shared.Model;
+using Newtonsoft.Json;
 using UnityEngine;
 
-namespace Assets.Scripts.DebugAndTest
+public sealed class GameManager : MonoBehaviour
 {
-    public sealed class GameManager : MonoBehaviour
+    [SerializeField] private WorldDataHolder _worldDataHolder;
+    [SerializeField] public BoxDataView _prefab;
+
+    private BoxDataView _box = null;
+    //[SerializeField] public TextMeshProUGUI TextSlot;
+
+    protected WorldState _worldState;
+
+    private void Start()
     {
-        [SerializeField] private WorldDataHolder _worldDataHolder;
-        [SerializeField] private BoxView _boxPrefab; // префаб ящика
+        _worldState = _worldDataHolder.WorldState;
 
-        private Dictionary<BoxData, BoxView> _boxesOnBoard = new Dictionary<BoxData, BoxView>();
+        // Подписываемся на изменения для отправки в сеть
+        _worldState.Changed += OnLocalStateChanged;
 
-        private void Start()
-        {
-            var data = _worldDataHolder.Data;
+        // Подписываемся на патчи для локальной реакции
+        _worldState.Patched += OnStatePatched;
+        // Принудительное обновление текста
 
-            data.SnapshotApplied += Redraw;
-            data.Boxes.Patched += Redraw;
-        }
-
-        public void SpawnBox()
-        {
-            var newBox = new BoxData(Vector2.zero);
-            _worldDataHolder.Data.Boxes.Add(newBox);
-
-            var view = Instantiate(_boxPrefab, transform);
-            view.Initialize(newBox);
-            _boxesOnBoard.Add(newBox, view);
-        }
-
-        public void DeleteLastBox()
-        {
-            var data = _worldDataHolder.Data;
-            var lastBoxData = data.Boxes.LastOrDefault();
-            if (lastBoxData != null)
-            {
-                data.Boxes.Remove(lastBoxData);
-                Destroy(_boxesOnBoard[lastBoxData].gameObject);
-                _boxesOnBoard.Remove(lastBoxData);
-            }
-        }
-
-        public void Redraw()
-        {
-            if (_boxesOnBoard.Count > 0)
-            {
-                var keys = _boxesOnBoard.Keys.ToList();
-                foreach (BoxData box in keys)
-                {
-                    Destroy(_boxesOnBoard[box].gameObject);
-                    _boxesOnBoard.Remove(box);
-                }
-            }
-
-            var data = _worldDataHolder.Data;
-            foreach (var boxData in data.Boxes)
-            {
-                var view = Instantiate(_boxPrefab, transform);
-                view.Initialize(boxData);
-                _boxesOnBoard.Add(boxData, view);
-            }
-
-            Debug.Log($"REDRAWED, count:{_boxesOnBoard.Count}!");
-        }
+        Redraw();
     }
 
+    private void OnLocalStateChanged(string path, object oldValue, object newValue)
+    {
+        // Формируем и отправляем сетевой патч
+        var patch = new
+        {
+            Type = "patch",
+            Path = path,
+            OldValue = oldValue,
+            NewValue = newValue
+        };
+
+        Debug.Log($"LocalPatch: {JsonConvert.SerializeObject(patch)}");
+    }
+
+    private void OnStatePatched(string path, object value)
+    {
+        // Локальная реакция на изменения (UI, звуки, эффекты)
+
+        Debug.Log($"External patch: {path} : {value}");
+    }
+
+    private void Redraw()
+    {
+        if (_box != null)
+        { 
+            Destroy(_box.gameObject);
+        }
+
+        var box = Instantiate(_prefab, transform);
+        box.Initialize(_worldState?.BoxData);
+    }
 }

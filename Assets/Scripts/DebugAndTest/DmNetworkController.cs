@@ -25,6 +25,10 @@ namespace Assets.Scripts.DebugAndTest
             _cts = new CancellationTokenSource();
         }
 
+        private void Start()
+        {
+        }
+
         private void Update()
         {
             _client?.Update();
@@ -52,7 +56,7 @@ namespace Assets.Scripts.DebugAndTest
                 var clientTransport = new TcpClientTransport();
 
                 Debug.Log("[NET] Creating GameClient (Host local)");
-                _client = new GameClient(clientTransport, _worldDataHolder.Data);
+                _client = new GameClient(clientTransport, _worldDataHolder.WorldState);
 
                 Debug.Log($"[NET] Connecting host local client to {localHost}:{port}");
                 await _client.ConnectAsync(localHost, port, _cts.Token);
@@ -84,7 +88,7 @@ namespace Assets.Scripts.DebugAndTest
                 var transport = new TcpClientTransport();
 
                 Debug.Log("[NET] Creating GameClient (Client)");
-                _client = new GameClient(transport, _worldDataHolder.Data);
+                _client = new GameClient(transport, _worldDataHolder.WorldState);
 
                 Debug.Log($"[NET] Connecting client to {host}:{port}");
                 await _client.ConnectAsync(host, port, _cts.Token);
