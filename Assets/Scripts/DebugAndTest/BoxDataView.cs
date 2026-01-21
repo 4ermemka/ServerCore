@@ -15,7 +15,7 @@ namespace Assets.Scripts.DebugAndTest
         {
             _data = data;
         
-            _data.Patched += UpdatePosition;
+            _data.Position.Patched += UpdatePosition;
         
             _camera = Camera.main;
         
