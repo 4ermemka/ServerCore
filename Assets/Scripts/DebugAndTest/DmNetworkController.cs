@@ -27,10 +27,6 @@ namespace Assets.Scripts.DebugAndTest
 
         private void Start()
         {
-            if (_worldDataHolder.WorldState == null)
-            {
-                _worldDataHolder.WorldState = new();
-            }
         }
 
         private void Update()
