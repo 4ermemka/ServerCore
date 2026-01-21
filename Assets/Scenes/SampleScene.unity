@@ -609,7 +609,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1039817483}
-        m_TargetAssemblyTypeName: Assets.Scripts.DebugAndTest.GameManager, Assembly-CSharp
+        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
         m_MethodName: DeleteLastBox
         m_Mode: 1
         m_Arguments:
@@ -1435,7 +1435,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _worldDataHolder: {fileID: 733916549}
   port: 25565
-  host: 192.168.0.105
+  host: 26.13.92.69
   localHost: 127.0.0.1
 --- !u!1 &1582651186
 GameObject:
@@ -1655,7 +1655,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1039817483}
-        m_TargetAssemblyTypeName: Assets.Scripts.DebugAndTest.GameManager, Assembly-CSharp
+        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
         m_MethodName: SpawnBox
         m_Mode: 1
         m_Arguments:
