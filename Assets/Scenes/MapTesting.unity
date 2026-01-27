@@ -167,6 +167,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d3f7f6742d9bc1c41a91a995a8eec9a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  keyActions:
+  - name: ToggleToolbar
+    key: 9
 --- !u!1 &596753288
 GameObject:
   m_ObjectHideFlags: 0
@@ -561,8 +564,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 332, y: 0}
-  m_SizeDelta: {x: 664, y: 0}
+  m_AnchoredPosition: {x: 220.5, y: 0}
+  m_SizeDelta: {x: 441, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1612382623
 MonoBehaviour:
@@ -576,9 +579,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0332d9c1b80766f45bf0d523bb3c46e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _toolbarPanel: {fileID: 1612382621}
-  _startHidden: 1
-  _toggleCooldown: 0.2
+  toolbarPanel: {fileID: 0}
 --- !u!114 &1612382624
 MonoBehaviour:
   m_ObjectHideFlags: 0
