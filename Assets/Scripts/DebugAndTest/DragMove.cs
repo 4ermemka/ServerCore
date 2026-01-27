@@ -2,17 +2,42 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DragMove : MonoBehaviour
+public class DragMove : InputHandler
 {
-    // Start is called before the first frame update
-    void Start()
+    [SerializeField]
+    Color ActiveColor = Color.green;
+    [SerializeField]
+    Color DeactiveColor = Color.white;
+
+    protected override void SubscribeEvents()
     {
-        
+        SubscribeToAction(
+            actionName: "ToggleCompass",
+            onPressed: Active,
+            onHeld: null,
+            onReleased: Deactive
+        );
+    }
+    
+    protected override void UnsubscribeEvents()
+    {
+    
     }
 
-    // Update is called once per frame
-    void Update()
+    protected void Start()
     {
-        
+        Deactive();
+    }
+
+    private void Active()
+    {
+        var image = gameObject.GetComponent<SpriteRenderer>();
+        image.color = ActiveColor;
+    }
+
+    private void Deactive()
+    {
+        var image = gameObject.GetComponent<SpriteRenderer>();
+        image.color = DeactiveColor;
     }
 }
