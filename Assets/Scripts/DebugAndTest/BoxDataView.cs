@@ -1,6 +1,7 @@
 ﻿using Assets.Shared.Model;
 using Assets.Shared.Model.Extensions;
 using UnityEngine;
+
 using UnityEngine.EventSystems;
 
 namespace Assets.Scripts.DebugAndTest
@@ -77,5 +78,4 @@ namespace Assets.Scripts.DebugAndTest
             _data.Position.Patched -= UpdatePosition;
         }
     }
-
 }
