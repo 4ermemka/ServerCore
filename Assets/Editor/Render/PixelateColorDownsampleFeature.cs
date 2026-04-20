@@ -8,20 +8,29 @@ public class PixelateRenderFeature : ScriptableRendererFeature
     [System.Serializable]
     public class Settings
     {
+        [Header("Pixelation (local override)")]
+        public bool enablePixelate = true;
         [Range(1, 64)] public int pixelSize = 8;
 
         [Header("Quantization")]
         public bool enableQuantization = false;
+        // legacy colors – используются только если colorPaletteSO == null
         public Color[] colorPalette = new Color[] { Color.black, Color.white };
         public bool useLABDistance = true;
 
         [Header("Visibility")]
         public bool showInSceneView = false;
-
         public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
     }
 
     public Settings settings = new();
+
+    [Tooltip("Общие настройки пикселизации (если назначены, переопределяют локальный pixelSize)")]
+    public PixelationSettings sharedPixelationSettings;
+
+    [Tooltip("Палитра цветов (если назначена, переопределяет локальный массив цветов)")]
+    public ColorPaletteSO colorPaletteSO;
+
     private PixelateRenderPass _renderPass;
     private Material _pixelateMaterial;
     private Material _quantizeMaterial;
@@ -30,21 +39,18 @@ public class PixelateRenderFeature : ScriptableRendererFeature
     {
         if (_pixelateMaterial == null)
         {
-            Shader pixelateShader = Shader.Find("Hidden/Pixelate");
-            if (pixelateShader == null)
-                pixelateShader = CreatePixelateShader();
-            _pixelateMaterial = new Material(pixelateShader);
+            Shader shader = Shader.Find("Hidden/Pixelate");
+            if (shader == null) shader = CreatePixelateShader();
+            _pixelateMaterial = new Material(shader);
         }
-
         if (_quantizeMaterial == null)
         {
-            Shader quantizeShader = Shader.Find("Hidden/Quantize");
-            if (quantizeShader == null)
-                quantizeShader = CreateQuantizeShader();
-            _quantizeMaterial = new Material(quantizeShader);
+            Shader shader = Shader.Find("Hidden/Quantize");
+            if (shader == null) shader = CreateQuantizeShader();
+            _quantizeMaterial = new Material(shader);
         }
 
-        _renderPass = new PixelateRenderPass(_pixelateMaterial, _quantizeMaterial, settings)
+        _renderPass = new PixelateRenderPass(_pixelateMaterial, _quantizeMaterial, settings, sharedPixelationSettings, colorPaletteSO)
         {
             renderPassEvent = settings.renderPassEvent
         };
@@ -62,52 +68,50 @@ public class PixelateRenderFeature : ScriptableRendererFeature
         var cameraType = renderingData.cameraData.cameraType;
         bool shouldRender = cameraType == CameraType.Game ||
                            (cameraType == CameraType.SceneView && settings.showInSceneView);
-
-        if (shouldRender)
-            renderer.EnqueuePass(_renderPass);
+        if (shouldRender) renderer.EnqueuePass(_renderPass);
     }
 
     private Shader CreatePixelateShader()
     {
         const string code = @"
-            Shader ""Hidden/Pixelate""
-            {
-                Properties { _BlitTexture (""Texture"", 2D) = ""white"" {} _PixelSize (""Pixel Size"", Float) = 8 }
-                SubShader
-                {
-                    Tags { ""RenderType""=""Opaque"" ""RenderPipeline""=""UniversalPipeline"" }
-                    LOD 100 ZWrite Off Cull Off
-                    Pass
-                    {
-                        Name ""Pixelate""
-                        HLSLPROGRAM
-                        #pragma vertex Vert
-                        #pragma fragment Frag
-                        #include ""Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl""
-                        struct Attributes { uint vertexID : SV_VertexID; };
-                        struct Varyings { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };
-                        TEXTURE2D(_BlitTexture); SAMPLER(sampler_BlitTexture);
-                        float _PixelSize; float4 _BlitTexture_TexelSize;
-                        Varyings Vert(Attributes input) {
-                            Varyings o;
-                            o.pos = GetFullScreenTriangleVertexPosition(input.vertexID);
-                            o.uv = GetFullScreenTriangleTexCoord(input.vertexID);
-                            return o;
-                        }
-                        float4 Frag(Varyings i) : SV_Target {
-                            float2 texelCount = _BlitTexture_TexelSize.zw;
-                            float2 stepUV = 1.0 / (texelCount / _PixelSize);
-                            float2 pixelatedUV = floor(i.uv / stepUV) * stepUV;
-                            pixelatedUV = min(pixelatedUV, 1.0 - stepUV);
-                            float2 sampleUV = pixelatedUV + stepUV * 0.5;
-                            float4 col = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, sampleUV);
-                            col.a = 1.0; // ★ делаем пиксели полностью непрозрачными
-                            return col;
-                        }
-                        ENDHLSL
-                    }
-                }
-            }";
+Shader ""Hidden/Pixelate""
+{
+    Properties { _BlitTexture (""Texture"", 2D) = ""white"" {} _PixelSize (""Pixel Size"", Float) = 8 }
+    SubShader
+    {
+        Tags { ""RenderType""=""Opaque"" ""RenderPipeline""=""UniversalPipeline"" }
+        LOD 100 ZWrite Off Cull Off
+        Pass
+        {
+            Name ""Pixelate""
+            HLSLPROGRAM
+            #pragma vertex Vert
+            #pragma fragment Frag
+            #include ""Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl""
+            struct Attributes { uint vertexID : SV_VertexID; };
+            struct Varyings { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };
+            TEXTURE2D(_BlitTexture); SAMPLER(sampler_BlitTexture);
+            float _PixelSize; float4 _BlitTexture_TexelSize;
+            Varyings Vert(Attributes input) {
+                Varyings o;
+                o.pos = GetFullScreenTriangleVertexPosition(input.vertexID);
+                o.uv = GetFullScreenTriangleTexCoord(input.vertexID);
+                return o;
+            }
+            float4 Frag(Varyings i) : SV_Target {
+                float2 texelCount = _BlitTexture_TexelSize.zw;
+                float2 stepUV = 1.0 / (texelCount / _PixelSize);
+                float2 pixelatedUV = floor(i.uv / stepUV) * stepUV;
+                pixelatedUV = min(pixelatedUV, 1.0 - stepUV);
+                float2 sampleUV = pixelatedUV + stepUV * 0.5;
+                float4 col = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, sampleUV);
+                col.a = 1.0;
+                return col;
+            }
+            ENDHLSL
+        }
+    }
+}";
         return ShaderUtil.CreateShaderAsset(code);
     }
 
@@ -140,9 +144,8 @@ Shader ""Hidden/Quantize""
             TEXTURE2D(_BlitTexture); SAMPLER(sampler_BlitTexture);
             float4 _BlitTexture_TexelSize;
 
-            // Палитра: до 16 цветов (x,y,z,w = RGB, w=0)
-            uniform float4 _PaletteColors[16];
-            uniform float _PaletteSize; // передаётся как float, используем как int
+            uniform float4 _PaletteColors[256];
+            uniform float _PaletteSize;
 
             Varyings Vert(Attributes input) {
                 Varyings o;
@@ -152,7 +155,6 @@ Shader ""Hidden/Quantize""
             }
 
             #if defined(DISTANCE_LAB_DELTAE)
-            // RGB -> XYZ (линеаризованный sRGB)
             float3 rgb2xyz(float3 rgb) {
                 rgb = pow(rgb, 2.2);
                 float3x3 m = float3x3(
@@ -162,7 +164,6 @@ Shader ""Hidden/Quantize""
                 );
                 return mul(m, rgb);
             }
-            // XYZ -> Lab (D65 white point)
             float3 xyz2lab(float3 xyz) {
                 xyz /= float3(0.95047, 1.0, 1.08883);
                 float3 f = xyz > 0.008856 ? pow(xyz, 1.0/3.0) : (7.787 * xyz + 16.0/116.0);
@@ -189,7 +190,6 @@ Shader ""Hidden/Quantize""
                     float3 labOrig = xyz2lab(rgb2xyz(original.rgb));
                 #endif
 
-                [unroll(16)]
                 for (int idx = 0; idx < paletteCount; idx++) {
                     float3 palColor = _PaletteColors[idx].rgb;
 
