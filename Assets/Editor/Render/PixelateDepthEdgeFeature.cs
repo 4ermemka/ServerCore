@@ -8,40 +8,53 @@ public class PixelateDepthEdgeFeature : ScriptableRendererFeature
     [System.Serializable]
     public class Settings
     {
-        [Tooltip("Локальный размер пикселя (игнорируется, если назначен общий PixelationSettings)")]
+        [Tooltip("Размер пикселя (используется, если не задан общий PixelationSettings)")]
         [Range(1, 64)]
         public int pixelSize = 8;
 
-        [Tooltip("Порог разницы глубины (0.0001–0.01)")]
-        [Range(0.0001f, 0.01f)]
-        public float depthBias = 0.005f;
+        [Header("Depth Difference")]
+        [Tooltip("Минимальная разница глубины (0..1) для начала затемнения")]
+        [Range(0.0f, 1.0f)]
+        public float minDepthDifference = 0.002f;
+        [Tooltip("Максимальная разница глубины (0..1) – при ней достигается максимальное затемнение")]
+        [Range(0.0f, 1.0f)]
+        public float maxDepthDifference = 0.01f;
 
+        [Header("Darkening")]
+        [Tooltip("Минимальное затемнение (0 = без изменений)")]
         [Range(0f, 1f)]
-        public float darkenAmount = 0.3f;
+        public float minDarkening = 0f;
+        [Tooltip("Максимальное затемнение (1 = полностью чёрный)")]
+        [Range(0f, 1f)]
+        public float maxDarkening = 0.5f;
 
-        public EdgeSide edgeSide = EdgeSide.Foreground;
+        [Header("Edge Side")]
+        public EdgeSide edgeSide = EdgeSide.Foreground; // Foreground = граница объекта на фоне, Background = фон перед объектом
+
+        [Header("Luminance Modulation (optional)")]
+        public bool modulateByLuminance = false; // теперь опционально, можно отключить
+        [Range(0f, 1f)]
+        public float luminanceModulationStrength = 1f;
+        [Range(0f, 1f)]
+        public float minLuminance = 0.2f;
+        [Range(0f, 1f)]
+        public float maxLuminance = 0.8f;
+
+        [Header("Stencil Filtering (exclude objects)")]
+        public bool useStencilFilter = false;
+        [Range(0, 255)]
+        public int stencilReference = 0;
+        public CompareFunction stencilCompare = CompareFunction.Equal;
+
+        [Header("Debug")]
         public bool depthPreview = false;
-
-        [Range(0.1f, 10f)]
-        public float depthContrast = 1f;
-
-        [Range(-1f, 1f)]
-        public float depthBrightness = 0f;
-
-        [Header("Lighting Modulation")]
-        public bool modulateByLighting = true;
-        [Range(0f, 1f)]
-        public float lightingModulationStrength = 1f;
-
         public bool showInSceneView = false;
-        public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
+        public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
     }
 
     public enum EdgeSide { Foreground, Background }
 
     public Settings settings = new();
-
-    [Tooltip("Общие настройки пикселизации (переопределяют локальный pixelSize)")]
     public PixelationSettings sharedPixelationSettings;
 
     private PixelateDepthEdgePass _renderPass;
@@ -85,13 +98,18 @@ Shader ""Hidden/PixelateDepthEdge""
         _BlitTexture (""Texture"", 2D) = ""white"" {}
         _DepthTexture (""Depth"", 2D) = ""white"" {}
         _PixelSize (""Pixel Size"", Float) = 8
-        _DepthBias (""Depth Bias"", Float) = 0.005
-        _DarkenAmount (""Darken Amount"", Float) = 0.3
+        _MinDepthDiff (""Min Depth Difference"", Float) = 0.002
+        _MaxDepthDiff (""Max Depth Difference"", Float) = 0.01
+        _MinDarkening (""Min Darkening"", Float) = 0
+        _MaxDarkening (""Max Darkening"", Float) = 0.5
         _EdgeSide (""Edge Side"", Float) = 0
-        _DepthContrast (""Depth Contrast"", Float) = 1
-        _DepthBrightness (""Depth Brightness"", Float) = 0
-        _ModulateByLighting (""Modulate by Lighting"", Float) = 1
-        _LightingStrength (""Lighting Strength"", Float) = 1
+        _ModulateByLuminance (""Modulate by Luminance"", Float) = 0
+        _LuminanceModStrength (""Luminance Modulation Strength"", Float) = 1
+        _MinLuminance (""Min Luminance"", Float) = 0.2
+        _MaxLuminance (""Max Luminance"", Float) = 0.8
+        _UseStencilFilter (""Use Stencil Filter"", Float) = 0
+        _StencilReference (""Stencil Reference"", Int) = 0
+        _StencilCompare (""Stencil Compare"", Int) = 2
     }
     SubShader
     {
@@ -112,9 +130,12 @@ Shader ""Hidden/PixelateDepthEdge""
             TEXTURE2D(_BlitTexture); SAMPLER(sampler_BlitTexture);
             TEXTURE2D(_DepthTexture); SAMPLER(sampler_DepthTexture);
             float _PixelSize; float4 _BlitTexture_TexelSize;
-            float _DepthBias; float _DarkenAmount; float _EdgeSide;
-            float _DepthContrast; float _DepthBrightness;
-            float _ModulateByLighting; float _LightingStrength;
+            float _MinDepthDiff; float _MaxDepthDiff;
+            float _MinDarkening; float _MaxDarkening;
+            float _EdgeSide;
+            float _ModulateByLuminance; float _LuminanceModStrength;
+            float _MinLuminance; float _MaxLuminance;
+            float _UseStencilFilter; int _StencilReference; int _StencilCompare;
 
             Varyings Vert(Attributes input) {
                 Varyings o;
@@ -131,51 +152,101 @@ Shader ""Hidden/PixelateDepthEdge""
                 return dot(color, float3(0.2126, 0.7152, 0.0722));
             }
 
+            float GetStencilValue(float2 uv) {
+                return SAMPLE_TEXTURE2D(_DepthTexture, sampler_DepthTexture, uv).y * 255.0;
+            }
+
+            bool StencilCompare(float stencilVal) {
+                if (_UseStencilFilter < 0.5) return true;
+                int s = (int)round(stencilVal);
+                if (_StencilCompare == 0) return true;
+                if (_StencilCompare == 1) return false;
+                if (_StencilCompare == 2) return s == _StencilReference;
+                if (_StencilCompare == 3) return s != _StencilReference;
+                return true;
+            }
+
+            // Возвращает минимальную глубину в блоке (ближайшую к камере)
+            float GetBlockDepth(float2 blockMin, float2 stepUV) {
+                float2 halfStep = stepUV * 0.5;
+                float2 corners[4] = {
+                    blockMin,
+                    blockMin + float2(stepUV.x, 0),
+                    blockMin + float2(0, stepUV.y),
+                    blockMin + stepUV
+                };
+                float minDepth = 1.0;
+                for (int i = 0; i < 4; i++) {
+                    float d = GetDepth(corners[i]);
+                    if (d < minDepth) minDepth = d;
+                }
+                return minDepth;
+            }
+
             float4 Frag(Varyings i) : SV_Target {
+                if (!StencilCompare(GetStencilValue(i.uv))) {
+                    return SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, i.uv);
+                }
+
                 float4 original = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, i.uv);
 
                 #if DEPTH_PREVIEW
                     float depth = GetDepth(i.uv);
-                    float gray = depth * _DepthContrast + _DepthBrightness;
-                    gray = saturate(gray);
-                    gray = 1.0 - gray;
+                    float gray = saturate(depth);
                     return float4(gray.xxx, 1.0);
                 #else
+                    // Пикселизация: определяем границы блока
                     float2 texelCount = _BlitTexture_TexelSize.zw;
                     float2 stepUV = 1.0 / (texelCount / _PixelSize);
-                    float2 pixelatedUV = floor(i.uv / stepUV) * stepUV;
-                    pixelatedUV = min(pixelatedUV, 1.0 - stepUV);
-                    float2 centerUV = pixelatedUV + stepUV * 0.5;
+                    float2 blockMin = floor(i.uv / stepUV) * stepUV;
+                    float2 blockCenter = blockMin + stepUV * 0.5;
 
-                    float centerDepth = GetDepth(centerUV);
-                    if (centerDepth >= 0.9999) return original;
+                    // Цвет блока (из центра)
+                    float4 blockColor = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, blockCenter);
 
-                    bool isEdge = false;
-                    float2 offsets[4] = {
-                        float2(stepUV.x, 0), float2(-stepUV.x, 0),
-                        float2(0, stepUV.y), float2(0, -stepUV.y)
+                    // Глубина текущего блока (минимальная по 4 углам)
+                    float blockDepth = GetBlockDepth(blockMin, stepUV);
+                    if (blockDepth >= 0.9999) return blockColor;  // фон
+
+                    // Глубины соседних блоков
+                    float2 stepX = float2(stepUV.x, 0);
+                    float2 stepY = float2(0, stepUV.y);
+                    float leftDepth = GetBlockDepth(blockMin - stepX, stepUV);
+                    float rightDepth = GetBlockDepth(blockMin + stepX, stepUV);
+                    float downDepth = GetBlockDepth(blockMin - stepY, stepUV);
+                    float upDepth = GetBlockDepth(blockMin + stepY, stepUV);
+
+                    // Максимальная разница глубины с учётом EdgeSide
+                    float maxDiff = 0.0;
+                    int side = (int)_EdgeSide;
+                    float diffs[4] = {
+                        (side == 0) ? (blockDepth - leftDepth) : (leftDepth - blockDepth),
+                        (side == 0) ? (blockDepth - rightDepth) : (rightDepth - blockDepth),
+                        (side == 0) ? (blockDepth - downDepth) : (downDepth - blockDepth),
+                        (side == 0) ? (blockDepth - upDepth) : (upDepth - blockDepth)
                     };
-
-                    for (int j = 0; j < 4; j++) {
-                        float2 neighborUV = centerUV + offsets[j];
-                        float neighborDepth = GetDepth(neighborUV);
-                        float depthDiff = neighborDepth - centerDepth;
-
-                        if ((int)_EdgeSide == 0) {
-                            if (depthDiff > _DepthBias) { isEdge = true; break; }
-                        } else {
-                            if (-depthDiff > _DepthBias) { isEdge = true; break; }
-                        }
+                    for (int i = 0; i < 4; i++) {
+                        if (diffs[i] > 0.0 && diffs[i] > maxDiff) maxDiff = diffs[i];
                     }
 
-                    float4 result = original;
-                    if (isEdge) {
-                        float luminance = GetLuminance(original.rgb);
-                        float modulation = _ModulateByLighting > 0.5 ? lerp(1.0, luminance, _LightingStrength) : 1.0;
-                        float darken = _DarkenAmount * modulation;
-                        result.rgb *= (1.0 - darken);
+                    // Интенсивность затемнения
+                    float darken = 0.0;
+                    if (maxDiff > 0.0) {
+                        float t = (maxDiff - _MinDepthDiff) / (_MaxDepthDiff - _MinDepthDiff);
+                        t = saturate(t);
+                        darken = lerp(_MinDarkening, _MaxDarkening, t);
                     }
-                    return result;
+
+                    // Модуляция яркостью (опционально)
+                    if (_ModulateByLuminance > 0.5) {
+                        float lum = GetLuminance(blockColor.rgb);
+                        float lumT = saturate((lum - _MinLuminance) / (_MaxLuminance - _MinLuminance));
+                        float lumMod = lerp(1.0, lumT, _LuminanceModStrength);
+                        darken *= lumMod;
+                    }
+
+                    float3 finalColor = blockColor.rgb * (1.0 - darken);
+                    return float4(finalColor, blockColor.a);
                 #endif
             }
             ENDHLSL

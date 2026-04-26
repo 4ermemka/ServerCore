@@ -29,6 +29,12 @@ public class PixelateNormalEdgeFeature : ScriptableRendererFeature
         [Tooltip("Максимальная яркость пикселя, при которой линия достигает полной яркости")]
         [Range(0f, 1f)] public float maxLuminance = 0.8f;
 
+        [Header("Stencil Filtering (exclude objects)")]
+        public bool useStencilFilter = false;
+        [Range(0, 255)]
+        public int stencilReference = 0;
+        public CompareFunction stencilCompare = CompareFunction.Equal;
+
         [Header("Debug")]
         public bool normalPreview = false;
         public bool showInSceneView = false;
@@ -89,6 +95,9 @@ Shader ""Hidden/PixelateNormalEdge""
         _MinLuminance (""Min Luminance"", Float) = 0.2
         _MaxLuminance (""Max Luminance"", Float) = 0.8
         _UseDepthFilter (""Use Depth Filter"", Float) = 1
+        _UseStencilFilter (""Use Stencil Filter"", Float) = 0
+        _StencilReference (""Stencil Reference"", Int) = 0
+        _StencilCompare (""Stencil Compare"", Int) = 2
     }
     SubShader
     {
@@ -113,6 +122,7 @@ Shader ""Hidden/PixelateNormalEdge""
             float _NormalBias; float _DepthThreshold; float _BrightenAmount;
             float _EdgeWidth; float _ModulateByLuminance; float _LuminanceContribution;
             float _MinLuminance; float _MaxLuminance; float _UseDepthFilter;
+            float _UseStencilFilter; int _StencilReference; int _StencilCompare;
 
             Varyings Vert(Attributes input) {
                 Varyings o;
@@ -136,6 +146,20 @@ Shader ""Hidden/PixelateNormalEdge""
 
             float GetLuminance(float3 color) {
                 return dot(color, float3(0.2126, 0.7152, 0.0722));
+            }
+
+            float GetStencilValue(float2 uv) {
+                return SAMPLE_TEXTURE2D(_DepthTexture, sampler_DepthTexture, uv).y * 255.0;
+            }
+
+            bool StencilCompare(float stencilVal) {
+                if (_UseStencilFilter < 0.5) return true;
+                int s = (int)round(stencilVal);
+                if (_StencilCompare == 0) return true;
+                if (_StencilCompare == 1) return false;
+                if (_StencilCompare == 2) return s == _StencilReference;
+                if (_StencilCompare == 3) return s != _StencilReference;
+                return true;
             }
 
             bool IsEdge(float2 uv, float2 texelSize) {
@@ -167,6 +191,11 @@ Shader ""Hidden/PixelateNormalEdge""
             }
 
             float4 Frag(Varyings i) : SV_Target {
+                // Проверка Stencil
+                if (!StencilCompare(GetStencilValue(i.uv))) {
+                    return SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, i.uv);
+                }
+
                 float4 original = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, i.uv);
 
                 #if NORMAL_PREVIEW
@@ -174,7 +203,6 @@ Shader ""Hidden/PixelateNormalEdge""
                     float3 color = normal * 0.5 + 0.5;
                     return float4(color, 1.0);
                 #else
-                    // Пикселизация
                     float2 texelCount = _BlitTexture_TexelSize.zw;
                     float2 stepUV = 1.0 / (texelCount / _PixelSize);
                     float2 pixelatedUV = floor(i.uv / stepUV) * stepUV;
@@ -186,18 +214,13 @@ Shader ""Hidden/PixelateNormalEdge""
 
                     float4 result = original;
                     if (isEdge) {
-                        // Получаем яркость исходного пикселя (с учётом пикселизации)
-                        float3 pixelColor = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, centerUV).rgb;
-                        float luminance = GetLuminance(pixelColor);
-                        // Применяем пороги к luminance
+                        float luminance = GetLuminance(original.rgb);
                         float t = saturate((luminance - _MinLuminance) / (_MaxLuminance - _MinLuminance));
                         float addAmount = _BrightenAmount;
                         if (_ModulateByLuminance > 0.5) {
-                            // mix между constant (0) и luminance (1), но с порогами уже применён t
                             float modulation = lerp(1.0, t, _LuminanceContribution);
                             addAmount *= modulation;
                         } else {
-                            // без модуляции просто добавляем константу (но пороги всё равно работают)
                             addAmount *= t;
                         }
                         result.rgb += addAmount;

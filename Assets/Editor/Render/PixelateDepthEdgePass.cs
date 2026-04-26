@@ -10,15 +10,20 @@ public class PixelateDepthEdgePass : ScriptableRenderPass
     private PixelationSettings _sharedPixelationSettings;
 
     private static readonly int PixelSizeId = Shader.PropertyToID("_PixelSize");
-    private static readonly int DepthBiasId = Shader.PropertyToID("_DepthBias");
-    private static readonly int DarkenAmountId = Shader.PropertyToID("_DarkenAmount");
+    private static readonly int MinDepthDiffId = Shader.PropertyToID("_MinDepthDiff");
+    private static readonly int MaxDepthDiffId = Shader.PropertyToID("_MaxDepthDiff");
+    private static readonly int MinDarkeningId = Shader.PropertyToID("_MinDarkening");
+    private static readonly int MaxDarkeningId = Shader.PropertyToID("_MaxDarkening");
     private static readonly int EdgeSideId = Shader.PropertyToID("_EdgeSide");
-    private static readonly int DepthContrastId = Shader.PropertyToID("_DepthContrast");
-    private static readonly int DepthBrightnessId = Shader.PropertyToID("_DepthBrightness");
+    private static readonly int ModulateByLuminanceId = Shader.PropertyToID("_ModulateByLuminance");
+    private static readonly int LuminanceModStrengthId = Shader.PropertyToID("_LuminanceModStrength");
+    private static readonly int MinLuminanceId = Shader.PropertyToID("_MinLuminance");
+    private static readonly int MaxLuminanceId = Shader.PropertyToID("_MaxLuminance");
     private static readonly int DepthTextureId = Shader.PropertyToID("_DepthTexture");
     private static readonly int BlitTextureId = Shader.PropertyToID("_BlitTexture");
-    private static readonly int ModulateByLightingId = Shader.PropertyToID("_ModulateByLighting");
-    private static readonly int LightingStrengthId = Shader.PropertyToID("_LightingStrength");
+    private static readonly int UseStencilFilterId = Shader.PropertyToID("_UseStencilFilter");
+    private static readonly int StencilReferenceId = Shader.PropertyToID("_StencilReference");
+    private static readonly int StencilCompareId = Shader.PropertyToID("_StencilCompare");
 
     public PixelateDepthEdgePass(Material material,
                                  PixelateDepthEdgeFeature.Settings settings,
@@ -50,13 +55,18 @@ public class PixelateDepthEdgePass : ScriptableRenderPass
         int pixelSize = (_sharedPixelationSettings != null) ? _sharedPixelationSettings.pixelSize : _settings.pixelSize;
 
         _material.SetFloat(PixelSizeId, pixelSize);
-        _material.SetFloat(DepthBiasId, _settings.depthBias);
-        _material.SetFloat(DarkenAmountId, _settings.darkenAmount);
+        _material.SetFloat(MinDepthDiffId, _settings.minDepthDifference);
+        _material.SetFloat(MaxDepthDiffId, _settings.maxDepthDifference);
+        _material.SetFloat(MinDarkeningId, _settings.minDarkening);
+        _material.SetFloat(MaxDarkeningId, _settings.maxDarkening);
         _material.SetFloat(EdgeSideId, (float)_settings.edgeSide);
-        _material.SetFloat(DepthContrastId, _settings.depthContrast);
-        _material.SetFloat(DepthBrightnessId, _settings.depthBrightness);
-        _material.SetFloat(ModulateByLightingId, _settings.modulateByLighting ? 1f : 0f);
-        _material.SetFloat(LightingStrengthId, _settings.lightingModulationStrength);
+        _material.SetFloat(ModulateByLuminanceId, _settings.modulateByLuminance ? 1f : 0f);
+        _material.SetFloat(LuminanceModStrengthId, _settings.luminanceModulationStrength);
+        _material.SetFloat(MinLuminanceId, _settings.minLuminance);
+        _material.SetFloat(MaxLuminanceId, _settings.maxLuminance);
+        _material.SetFloat(UseStencilFilterId, _settings.useStencilFilter ? 1f : 0f);
+        _material.SetInt(StencilReferenceId, _settings.stencilReference);
+        _material.SetInt(StencilCompareId, (int)_settings.stencilCompare);
 
         if (_settings.depthPreview)
             _material.EnableKeyword("DEPTH_PREVIEW");

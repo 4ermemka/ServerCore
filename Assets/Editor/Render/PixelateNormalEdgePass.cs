@@ -22,6 +22,9 @@ public class PixelateNormalEdgePass : ScriptableRenderPass
     private static readonly int MinLuminanceId = Shader.PropertyToID("_MinLuminance");
     private static readonly int MaxLuminanceId = Shader.PropertyToID("_MaxLuminance");
     private static readonly int UseDepthFilterId = Shader.PropertyToID("_UseDepthFilter");
+    private static readonly int UseStencilFilterId = Shader.PropertyToID("_UseStencilFilter");
+    private static readonly int StencilReferenceId = Shader.PropertyToID("_StencilReference");
+    private static readonly int StencilCompareId = Shader.PropertyToID("_StencilCompare");
 
     public PixelateNormalEdgePass(Material material,
                                   PixelateNormalEdgeFeature.Settings settings,
@@ -65,6 +68,9 @@ public class PixelateNormalEdgePass : ScriptableRenderPass
         _material.SetFloat(MinLuminanceId, _settings.minLuminance);
         _material.SetFloat(MaxLuminanceId, _settings.maxLuminance);
         _material.SetFloat(UseDepthFilterId, _settings.useDepthFilter ? 1f : 0f);
+        _material.SetFloat(UseStencilFilterId, _settings.useStencilFilter ? 1f : 0f);
+        _material.SetInt(StencilReferenceId, _settings.stencilReference);
+        _material.SetInt(StencilCompareId, (int)_settings.stencilCompare);
 
         if (_settings.normalPreview)
             _material.EnableKeyword("NORMAL_PREVIEW");

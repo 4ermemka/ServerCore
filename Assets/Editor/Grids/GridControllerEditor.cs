@@ -1,52 +1,32 @@
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(GridController))]
-public class GridControllerEditor : Editor
+[CustomEditor(typeof(GridGenerator))]
+public class GridGeneratorEditor : Editor
 {
-    private GridController controller;
-
-    private void OnEnable()
-    {
-        controller = (GridController)target;
-        EditorApplication.update += Repaint;
-    }
-
-    private void OnDisable()
-    {
-        EditorApplication.update -= Repaint;
-    }
-
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
+        var generator = (GridGenerator)target;
 
         EditorGUILayout.Space();
         if (GUILayout.Button("Generate Grid", GUILayout.Height(30)))
         {
-            Undo.RecordObject(controller, "Generate Grid");
-            controller.GenerateGrid();
-            EditorUtility.SetDirty(controller);
+            Undo.RecordObject(generator, "Generate Grid");
+            generator.GenerateGrid();
+            EditorUtility.SetDirty(generator);
         }
-
         if (GUILayout.Button("Clear Grid", GUILayout.Height(20)))
         {
-            Undo.RecordObject(controller, "Clear Grid");
-            controller.ClearGrid();
-            EditorUtility.SetDirty(controller);
-        }
-
-        if (controller.AllCells != null)
-        {
-            EditorGUILayout.HelpBox($"Total cells: {controller.AllCells.Count}", MessageType.Info);
+            Undo.RecordObject(generator, "Clear Grid");
+            generator.ClearExisting();
+            EditorUtility.SetDirty(generator);
         }
     }
 
-    private void OnSceneGUI()
+    [DrawGizmo(GizmoType.Selected | GizmoType.Active)]
+    static void DrawConnections(GridHolder holder, GizmoType type)
     {
-        if (controller != null)
-        {
-            controller.DrawEditorConnections();
-        }
+        if (holder != null) holder.DrawConnections();
     }
 }
