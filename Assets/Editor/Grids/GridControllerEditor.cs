@@ -25,7 +25,7 @@ public class GridGeneratorEditor : Editor
     }
 
     [DrawGizmo(GizmoType.Selected | GizmoType.Active)]
-    static void DrawConnections(GridHolder holder, GizmoType type)
+    static void DrawConnections(GridProvider holder, GizmoType type)
     {
         if (holder != null) holder.DrawConnections();
     }

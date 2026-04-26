@@ -1,13 +1,11 @@
-using Unity.VisualScripting;
 using UnityEngine;
 
-public class GridSelector : MonoBehaviour
+public class GridSelector : Manager
 {
-    [SerializeField] GridHolder GridProvider;
+    [SerializeField] GridProvider GridProvider;
     [SerializeField] private int NeighbourCount;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public override void Init()
     {
         if (GridProvider != null)
         {
@@ -15,6 +13,8 @@ public class GridSelector : MonoBehaviour
             GridProvider.OnCellPointerExit += Deselect;
             GridProvider.OnCellPointerClick += Click;
         }
+        Debug.Log($"{Name} Подключение событий произведено!");
+        base.Init();
     }
 
     private void Select(IGridCell cell)
@@ -41,7 +41,7 @@ public class GridSelector : MonoBehaviour
 
     private void Click(IGridCell cell)
     {
-        Debug.Log("Clicked!");
+        //Debug.Log("Clicked!");
         if (cell.Selection.IsSelected("Click"))
         {
             cell.Selection.Deselect("Click");
