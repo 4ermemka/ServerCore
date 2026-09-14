@@ -1,4 +1,3 @@
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -18,7 +17,7 @@ public class PixelateRenderFeature : ScriptableRendererFeature
 
         [Header("Quantization")]
         public bool enableQuantization = false;
-        // legacy colors – используются только если colorPaletteSO == null
+        // Legacy fallback used only when colorPaletteSO is not assigned.
         public Color[] colorPalette = new Color[] { Color.black, Color.white };
         public bool useLABDistance = true;
 
@@ -29,10 +28,10 @@ public class PixelateRenderFeature : ScriptableRendererFeature
 
     public Settings settings = new();
 
-    [Tooltip("Общие настройки пикселизации (если назначены, переопределяют локальный pixelSize)")]
+    [Tooltip("Shared pixelation settings. When assigned, this overrides the local pixel size.")]
     public PixelationSettings sharedPixelationSettings;
 
-    [Tooltip("Палитра цветов (если назначена, переопределяет локальный массив цветов)")]
+    [Tooltip("Shared color palette. When assigned, this overrides the local color array.")]
     public ColorPaletteSO colorPaletteSO;
 
     private PixelateRenderPass _renderPass;
@@ -47,16 +46,27 @@ public class PixelateRenderFeature : ScriptableRendererFeature
             {
                 settings.pixelShader = Shader.Find("Hidden/Pixelate");
             }
-            //if (shader == null) shader = CreatePixelateShader();
+            // Keep the shader as an asset/Shader.Find result; editor-only generated fallbacks break player builds.
+            if (settings.pixelShader == null)
+            {
+                Debug.LogError("Pixelate shader 'Hidden/Pixelate' was not found.");
+                return;
+            }
             _pixelateMaterial = new Material(settings.pixelShader);
         }
+
         if (_quantizeMaterial == null)
         {
             if (settings.quantizeShader == null)
             {
                 settings.quantizeShader = Shader.Find("Hidden/Quantize");
             }
-            //if (shader == null) shader = CreateQuantizeShader();
+            // Keep the shader as an asset/Shader.Find result; editor-only generated fallbacks break player builds.
+            if (settings.quantizeShader == null)
+            {
+                Debug.LogError("Quantize shader 'Hidden/Quantize' was not found.");
+                return;
+            }
             _quantizeMaterial = new Material(settings.quantizeShader);
         }
 
@@ -77,7 +87,7 @@ public class PixelateRenderFeature : ScriptableRendererFeature
     {
         var cameraType = renderingData.cameraData.cameraType;
         bool shouldRender = cameraType == CameraType.Game ||
-                           (cameraType == CameraType.SceneView && settings.showInSceneView);
-        if (shouldRender) renderer.EnqueuePass(_renderPass);
+                            (cameraType == CameraType.SceneView && settings.showInSceneView);
+        if (shouldRender && _renderPass != null) renderer.EnqueuePass(_renderPass);
     }
 }

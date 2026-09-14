@@ -33,6 +33,7 @@ public class PixelateDepthEdgePass : ScriptableRenderPass
         _settings = settings;
         _sharedPixelationSettings = sharedPixelationSettings;
         profilingSampler = new ProfilingSampler(nameof(PixelateDepthEdgePass));
+        ConfigureInput(ScriptableRenderPassInput.Depth);
     }
 
     public void Dispose() { }
@@ -52,18 +53,23 @@ public class PixelateDepthEdgePass : ScriptableRenderPass
         desc.filterMode = FilterMode.Point;
         TextureHandle dstColor = renderGraph.CreateTexture(desc);
 
-        int pixelSize = (_sharedPixelationSettings != null) ? _sharedPixelationSettings.pixelSize : _settings.pixelSize;
+        int pixelSize = Mathf.Max(1, (_sharedPixelationSettings != null) ? _sharedPixelationSettings.pixelSize : _settings.pixelSize);
+        // The shader compares Linear01Depth values, so these thresholds stay normalized but avoid raw-depth nonlinearity.
+        float minDepthDifference = Mathf.Max(0f, _settings.minDepthDifference);
+        float maxDepthDifference = Mathf.Max(minDepthDifference + 0.000001f, _settings.maxDepthDifference);
+        float minLuminance = Mathf.Clamp01(_settings.minLuminance);
+        float maxLuminance = Mathf.Max(minLuminance + 0.000001f, Mathf.Clamp01(_settings.maxLuminance));
 
         _material.SetFloat(PixelSizeId, pixelSize);
-        _material.SetFloat(MinDepthDiffId, _settings.minDepthDifference);
-        _material.SetFloat(MaxDepthDiffId, _settings.maxDepthDifference);
+        _material.SetFloat(MinDepthDiffId, minDepthDifference);
+        _material.SetFloat(MaxDepthDiffId, maxDepthDifference);
         _material.SetFloat(MinDarkeningId, _settings.minDarkening);
         _material.SetFloat(MaxDarkeningId, _settings.maxDarkening);
         _material.SetFloat(EdgeSideId, (float)_settings.edgeSide);
         _material.SetFloat(ModulateByLuminanceId, _settings.modulateByLuminance ? 1f : 0f);
         _material.SetFloat(LuminanceModStrengthId, _settings.luminanceModulationStrength);
-        _material.SetFloat(MinLuminanceId, _settings.minLuminance);
-        _material.SetFloat(MaxLuminanceId, _settings.maxLuminance);
+        _material.SetFloat(MinLuminanceId, minLuminance);
+        _material.SetFloat(MaxLuminanceId, maxLuminance);
         _material.SetFloat(UseStencilFilterId, _settings.useStencilFilter ? 1f : 0f);
         _material.SetInt(StencilReferenceId, _settings.stencilReference);
         _material.SetInt(StencilCompareId, (int)_settings.stencilCompare);

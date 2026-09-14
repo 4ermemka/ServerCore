@@ -56,17 +56,20 @@ public class PixelateNormalEdgePass : ScriptableRenderPass
         desc.filterMode = FilterMode.Point;
         TextureHandle dstColor = renderGraph.CreateTexture(desc);
 
-        int pixelSize = (_sharedPixelationSettings != null) ? _sharedPixelationSettings.pixelSize : _settings.pixelSize;
+        int pixelSize = Mathf.Max(1, (_sharedPixelationSettings != null) ? _sharedPixelationSettings.pixelSize : _settings.pixelSize);
+        float minLuminance = Mathf.Clamp01(_settings.minLuminance);
+        float maxLuminance = Mathf.Max(minLuminance + 0.000001f, Mathf.Clamp01(_settings.maxLuminance));
 
         _material.SetFloat(PixelSizeId, pixelSize);
         _material.SetFloat(NormalBiasId, _settings.normalBias);
+        // The shader applies this threshold to Linear01Depth deltas, matching depth-edge behavior.
         _material.SetFloat(DepthThresholdId, _settings.depthThreshold);
         _material.SetFloat(BrightenAmountId, _settings.brightenAmount);
         _material.SetFloat(EdgeWidthId, _settings.edgeWidth);
         _material.SetFloat(ModulateByLuminanceId, _settings.modulateByLuminance ? 1f : 0f);
         _material.SetFloat(LuminanceContributionId, _settings.luminanceContribution);
-        _material.SetFloat(MinLuminanceId, _settings.minLuminance);
-        _material.SetFloat(MaxLuminanceId, _settings.maxLuminance);
+        _material.SetFloat(MinLuminanceId, minLuminance);
+        _material.SetFloat(MaxLuminanceId, maxLuminance);
         _material.SetFloat(UseDepthFilterId, _settings.useDepthFilter ? 1f : 0f);
         _material.SetFloat(UseStencilFilterId, _settings.useStencilFilter ? 1f : 0f);
         _material.SetInt(StencilReferenceId, _settings.stencilReference);
