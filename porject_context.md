@@ -40,7 +40,7 @@ ServerCore развивается как часть движка для наст
 
 | Проект | Связь | Project context |
 |---|---|---|
-| PrometheusTools, [Assets/Shared](Assets/Shared) | Git submodule; предоставляет WorldState, Sync/SyncList, сетевой протокол, GameClient/GameServer, TCP transports и prefab BoxView | project context не найден: Assets/Shared/porject_context.md |
+| PrometheusTools, [Assets/Shared](Assets/Shared) | Git submodule; предоставляет WorldState, Sync/SyncList, сетевой протокол, GameClient/GameServer, TCP transports и переиспользуемый InventorySystem | project context не найден: Assets/Shared/porject_context.md |
 
 ## 3. Технологический Стек
 
@@ -68,8 +68,9 @@ ServerCore развивается как часть движка для наст
 |---|---|
 | [Assets/Scripts/DebugAndTest](Assets/Scripts/DebugAndTest) | Весь собственный прикладной C#-код ServerCore: хранение состояния, UI/game orchestration, drag view и запуск сети |
 | [Assets/Scenes/SampleScene.unity](Assets/Scenes/SampleScene.unity) | Единственная включённая сцена; содержит WorldRoot, GameManager, NetworkRoot, Canvas, EventSystem и UI-кнопки |
-| [Assets/Shared](Assets/Shared) | Git submodule PrometheusTools; общие доменные, sync- и network-контракты |
-| [Assets/Shared/Prefabs/BoxView.prefab](Assets/Shared/Prefabs/BoxView.prefab) | Prefab визуального объекта с компонентом BoxDataView |
+| [Assets/Shared](Assets/Shared) | Git submodule PrometheusTools; общие доменные, sync-, network-, interaction-, grid- и inventory-механики |
+| [Assets/Shared/Scripts/Systems/InventorySystem](Assets/Shared/Scripts/Systems/InventorySystem) | Абстракции предметов/инвентарей, action pipeline, обычное и бесконечное хранилища, process-контракты craft/exchange/trade |
+| [Assets/Shared/Prefabs](Assets/Shared/Prefabs) | Общие prefab submodule. Ранее использовавшийся BoxView в текущем checkout не найден; scene binding требует проверки |
 | [Assets/TextMesh Pro](Assets/TextMesh%20Pro) | Импортированный пакет ресурсов, примеров, шейдеров и шрифтов TMP; не является основной логикой ServerCore |
 | [Packages/manifest.json](Packages/manifest.json) | Декларация Unity packages |
 | [Packages/packages-lock.json](Packages/packages-lock.json) | Зафиксированный dependency graph UPM |
@@ -118,6 +119,8 @@ ServerCore развивается как часть движка для наст
 
 Публичные типы из Assets/Shared являются API связанного проекта, а не собственным API ServerCore, но текущий проект напрямую зависит от WorldState, BoxData, Vector2Dto, GameClient, GameServer, TcpClientTransport и TcpHostTransport.
 
+InventorySystem экспортирует отдельную reusable public surface, пока не подключённую к SampleScene: IInventory/IInventory<TItem>, IInventoryItem, IItemStorage<TItem>, UnorderedItemStorage<TItem>, InfiniteItemStorage, action/rule/result-типы и базовые process-классы для crafting, exchange и trade.
+
 ## 6. Внутренняя Архитектура
 
 ### Целевая слоистая бизнес-архитектура
@@ -163,7 +166,7 @@ ServerCore развивается как часть движка для наст
 
 ## 7. Доменные Модели И Контракты
 
-Доменные типы определены в связанном проекте, прежде всего в [Assets/Shared/Model/WorldData.cs](Assets/Shared/Model/WorldData.cs) и [Assets/Shared/Model/Extensions/DTO/Vector2DTO.cs](Assets/Shared/Model/Extensions/DTO/Vector2DTO.cs).
+Доменные типы определены в связанном проекте, прежде всего в [Assets/Shared/Scripts/Model/WorldData.cs](Assets/Shared/Scripts/Model/WorldData.cs) и [Assets/Shared/Scripts/Model/Extensions/DTO/Vector2DTO.cs](Assets/Shared/Scripts/Model/Extensions/DTO/Vector2DTO.cs).
 
 | Тип | Смысл и ограничения |
 |---|---|
@@ -172,6 +175,29 @@ ServerCore развивается как часть движка для наст
 | Vector2Dto | JSON-friendly mutable DTO с float-полями x и y; wire names явно заданы как x/y |
 | Sync<T> | Обёртка значения; обычная запись вызывает Changed, silent remote patch вызывает Patched |
 | SyncList<T> | IList с path-based событиями add/insert/remove/clear и индексными путями |
+
+### InventorySystem
+
+Основные контракты находятся в [Assets/Shared/Scripts/Systems/InventorySystem](Assets/Shared/Scripts/Systems/InventorySystem):
+
+| Контракт/тип | Назначение |
+|---|---|
+| IInventoryItem | Минимальный предмет: стабильный ItemId и Name. Конкретный тип может быть обычным предметом, quest object, enemy preset и т.п. |
+| IInventory / IInventory<TItem> | Обнаруживаемый в Data-graph trackable inventory без предположения о способе хранения |
+| IItemStorage<TItem> | Read-only выдача Items и стандартные Can/Try add, remove, clear и transfer |
+| UnorderedItemStorage<TItem> | Готовое неупорядоченное хранилище; Items выдаётся детерминированно по Name, затем ItemId |
+| InfiniteItemStorage<TItem, TContext> | Каталог шаблонов с fill rules и factory; materialize/transfer создаёт новый экземпляр и не расходует шаблон |
+| InventoryAction<TItem> | Неизменяемое описание действия с OperationId, kind, origin, source/target, items и string metadata |
+| IInventoryActionRule<TItem> | Side-effect free правило, выполняемое до mutation; есть delegate-adapter |
+| InventoryProcessBase<TItem, TRequest> | База для механик, чья конкретная семантика задаётся request и реализацией |
+| CraftingStationBase | Craft без навязанной модели recipe/order/skill/input/output |
+| ExchangeInventoryBase / TradeInventoryBase | Обмен/торговля без навязанной модели участников, цены и валюты |
+
+Стандартный action lifecycle: validation rules → ActionExecuting → mutation → ActionExecuted. Отказ вызывает ActionRejected. Ошибка пользовательского event handler не отменяет mutation и передаётся через ObserverFaulted.
+
+Локальные изменения ItemsState выполняются через SyncList и поднимают ITrackable.Changed для сетевого patch. Входящий ItemsState.Patched преобразуется в ActionExecuted с Origin.Remote. Transfer создаёт TransferOut и TransferIn с общим OperationId. Обычный atomic transfer поддерживается между наследниками ItemStorageBase; при неожиданной ошибке mutation выполняется compensating rollback.
+
+Пути InventoryIdState, NameState и ItemsState являются текущей частью snapshot/patch-контракта. ItemId обязателен и уникален внутри хранилища. Name обязателен для стандартной сортировки. Физический индекс SyncList не является игровым слотом или стабильным идентификатором.
 
 Критичный строковый контракт путей:
 
@@ -187,7 +213,7 @@ ServerCore развивается как часть движка для наст
 
     [message type: 1 byte][payload length: 4 bytes, little-endian][UTF-8 JSON payload]
 
-MessageType закреплён числовыми значениями в [Assets/Shared/Network/NetCore/MessageType.cs](Assets/Shared/Network/NetCore/MessageType.cs):
+MessageType закреплён числовыми значениями в [Assets/Shared/Scripts/Systems/NetworkSystem/NetCore/MessageType.cs](Assets/Shared/Scripts/Systems/NetworkSystem/NetCore/MessageType.cs):
 
 | Значение | Сообщение |
 |---:|---|
@@ -203,9 +229,20 @@ MessageType закреплён числовыми значениями в [Asset
 - SnapshotMessage: TargetClientId, JSON-строка WorldDataPayload, Version и AppliedPatches.
 - PatchMessage: ChangeData с Path, OldValue, NewValue, Timestamp и SourceClientId.
 
-[JsonGameSerializer.cs](Assets/Shared/Network/NetCore/JsonGameSerializer.cs) использует Newtonsoft.Json без type metadata, игнорирует null и преобразует сложные object/JToken через JSON. Имена JSON-полей, числовые MessageType и framing являются межклиентским протоколом и должны меняться согласованно.
+[JsonGameSerializer.cs](Assets/Shared/Scripts/Systems/NetworkSystem/NetCore/JsonGameSerializer.cs) использует Newtonsoft.Json без type metadata, игнорирует null и преобразует сложные object/JToken через JSON. Имена JSON-полей, числовые MessageType и framing являются межклиентским протоколом и должны меняться согласованно.
 
 ## 8. Потоки Данных И Выполнения
+
+### Inventory action и patch
+
+1. Game-слой вызывает CanAdd/CanRemove для preview либо сразу TryAdd/TryRemove/TryTransferTo.
+2. Storage строит InventoryAction и последовательно проверяет встроенные invariants, override hooks и зарегистрированные IInventoryActionRule.
+3. После успешной проверки вызывается ActionExecuting.
+4. Mutation меняет ItemsState; SyncList поднимает Changed, который может быть превращён GameClient в сетевой patch.
+5. После mutation вызывается ActionExecuted. Сюжетные триггеры и UI могут реагировать, не вмешиваясь в storage core.
+6. На другом клиенте patch применяется к ItemsState без повторного Changed; storage публикует ActionExecuted с Origin.Remote.
+
+Crafting/Trade/Exchange используют тот же pipeline через InventoryProcessBase. Конкретная реализация обязана полностью проверить request до изменения нескольких storages и определить свою атомарность.
 
 ### Инициализация сцены
 
@@ -306,7 +343,7 @@ Assembly-CSharp.csproj и ServerCore.sln сгенерированы Unity и и�
     $unity = 'C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe'
     & $unity -batchmode -nographics -quit -projectPath (Resolve-Path '.') -logFile -
 
-Команда не проверялась: во время анализа существовал Temp/UnityLockfile, поэтому второй Unity-процесс не запускался.
+Повторная попытка 2026-08-22 не дошла до import/compile: Unity завершился из-за отсутствующей headless-лицензии. Не удаляйте lock и не считайте batch-проверку пройденной без успешного Editor log.
 
 ### Запуск приложения
 
@@ -330,7 +367,7 @@ Assembly-CSharp.csproj и ServerCore.sln сгенерированы Unity и и�
 - Unity Test Framework установлен.
 - Каталоги Assets/Tests, test asmdef, NUnit/UnityTest usage и тестовые C#-файлы не найдены.
 - CI pipeline не найден.
-- Проверена только компиляция Assembly-CSharp.
+- Постоянных InventorySystem tests пока нет. Во время реализации выполнен временный изолированный harness на фактических исходниках InventorySystem + SyncSystem: 9/9 сценариев прошли (add/sort/patch/events, rule rejection, correlated transfer, compensating rollback, infinite fill/materialize/transfer, factory contract, remote patch, observer isolation, empty clear).
 
 Минимальный ручной regression suite:
 
@@ -365,13 +402,14 @@ ServerCore использует из него:
 - event/path synchronization Sync, SyncList, TrackableNode;
 - GameClient и GameServer;
 - TCP transports и protocol DTO;
-- prefab BoxView и sprite.
+- InventorySystem;
+- общие grid/input/interaction/selection механики и assets.
 
 Менять эти файлы следует как код отдельного PrometheusTools-репозитория, затем осознанно обновлять submodule pointer в ServerCore. Не коммитьте случайные изменения внутри submodule как будто это обычная папка корневого проекта.
 
 Project context отсутствует: Assets/Shared/porject_context.md.
 
-Важно для воспроизводимости: на дату генерации root Git index указывает Assets/Shared на commit 45e74ee, а рабочий submodule checkout находится на f43b3f3. Именно фактически checkout-нутая версия f43b3f3 участвовала в анализе и успешной компиляции. Перед коммитом или сравнением поведения нужно решить, какой commit является целевым.
+Перед началом InventorySystem root Git index и Shared checkout совпадали на commit 0fd4309. Новые inventory-файлы являются незакоммиченными изменениями внутри submodule; после review их нужно закоммитить в PrometheusTools, затем обновить submodule pointer отдельным commit в ServerCore.
 
 Другие solution/project integrations не найдены. ServerCore.sln содержит только Assembly-CSharp.
 
@@ -448,10 +486,14 @@ Assets/Shared не generated-каталог, но это отдельная Git-
 | Изменить кнопки Host/Client/Stop | [DmNetworkController.cs](Assets/Scripts/DebugAndTest/DmNetworkController.cs), [SampleScene.unity](Assets/Scenes/SampleScene.unity) | UnityEvent bindings, shutdown/reconnect, Inspector host/port |
 | Изменить add/remove коробок | [GameManager.cs](Assets/Scripts/DebugAndTest/GameManager.cs) | SyncList path, двойные подписки Changed, remote replication |
 | Изменить drag/позицию | [BoxDataView.cs](Assets/Scripts/DebugAndTest/BoxDataView.cs) | Camera.main, EventSystem, Position.Patched subscription/unsubscription |
-| Изменить визуал коробки | [Assets/Shared/Prefabs/BoxView.prefab](Assets/Shared/Prefabs/BoxView.prefab), BoxDataView | Это asset submodule; нужен отдельный commit и обновление pointer |
-| Добавить поле состояния | [Assets/Shared/Model/WorldData.cs](Assets/Shared/Model/WorldData.cs), view/controller | Это контракт PrometheusTools; проверить snapshot, patch path и JSON round-trip |
-| Изменить сетевой протокол | [Assets/Shared/Network/NetCore](Assets/Shared/Network/NetCore) | Обновить client/server симметрично, сохранить framing/MessageType compatibility |
-| Изменить TCP transport | [Assets/Shared/Network/NetTCP](Assets/Shared/Network/NetTCP) | Partial reads, length limit, cancellation, disconnect, concurrent sends |
+| Изменить общий inventory API | [InventorySystem](Assets/Shared/Scripts/Systems/InventorySystem) | Rules/events, local/remote action, patch paths, transfer rollback, source compatibility |
+| Добавить конкретный storage | [ItemStorageBase.cs](Assets/Shared/Scripts/Systems/InventorySystem/Storage/ItemStorageBase.cs) | Переопределить validation hooks; не обходить ItemsState стандартными public mutation |
+| Добавить infinite catalog | [InfiniteItemStorage.cs](Assets/Shared/Scripts/Systems/InventorySystem/Storage/InfiniteItemStorage.cs) | Factory обязан использовать выданный instanceId; проверить fill mode и transfer |
+| Реализовать crafting/trade | [Crafting](Assets/Shared/Scripts/Systems/InventorySystem/Crafting), [Trading](Assets/Shared/Scripts/Systems/InventorySystem/Trading) | Конкретный TRequest, полная pre-validation, атомарность нескольких storages |
+| Изменить prefab Shared | [Assets/Shared/Prefabs](Assets/Shared/Prefabs), scene/view | Это asset submodule; нужен отдельный commit и проверка GUID bindings |
+| Добавить поле состояния | [Assets/Shared/Scripts/Model/WorldData.cs](Assets/Shared/Scripts/Model/WorldData.cs), view/controller | Это контракт PrometheusTools; проверить snapshot, patch path и JSON round-trip |
+| Изменить сетевой протокол | [NetCore](Assets/Shared/Scripts/Systems/NetworkSystem/NetCore) | Обновить client/server симметрично, сохранить framing/MessageType compatibility |
+| Изменить TCP transport | [NetTCP](Assets/Shared/Scripts/Systems/NetworkSystem/NetTCP) | Partial reads, length limit, cancellation, disconnect, concurrent sends |
 | Изменить endpoint | NetworkRoot в [SampleScene.unity](Assets/Scenes/SampleScene.unity) и defaults DmNetworkController | Scene value перекрывает C# default; не коммитить чувствительные адреса |
 | Добавить сцену | Assets/Scenes и [EditorBuildSettings.asset](ProjectSettings/EditorBuildSettings.asset) | GUID/meta, build order, serialized dependencies |
 | Добавить package | [Packages/manifest.json](Packages/manifest.json) | Unity resolve, packages-lock diff, compile |
@@ -459,7 +501,7 @@ Assets/Shared не generated-каталог, но это отдельная Git-
 
 ## 16. Риски И Тонкости
 
-1. Submodule не совпадает с root pointer. Текущий код собирается с f43b3f3, но root index закрепляет 45e74ee.
+1. InventorySystem сейчас является незакоммиченным изменением внутри Shared submodule; сначала нужен commit PrometheusTools, затем обновление root pointer.
 2. Порядок Start не задан. GameManager.Start предполагает, что WorldDataHolder.Start уже создал WorldState; Unity не гарантирует порядок разных MonoBehaviour без Script Execution Order.
 3. Нет автоматического cleanup MonoBehaviour. DmNetworkController не вызывает ShutdownNetworkAsync в OnDestroy/OnApplicationQuit, а GameManager не отписывается от событий состояния.
 4. Двойная локальная подписка GameManager на WorldState.Changed и Boxes.Changed может выполнять log/Redraw дважды на одно изменение.
@@ -485,6 +527,12 @@ Assets/Shared не generated-каталог, но это отдельная Git-
 24. Текущий сервер принимает и ретранслирует patch без role/permission validation. До появления authoritative policy ограничения игрока остаются клиентской договорённостью, а не границей безопасности.
 25. Широкое применение reflection в Unity может увеличить startup cost и конфликтовать с AOT/IL2CPP stripping. Metadata следует кэшировать, а соответствующий player build проверять отдельно.
 26. Стремление к универсальности не отменяет cohesion: чрезмерно широкий base class или интерфейс будет противоречить SOLID и усложнит специализацию. Вариативность лучше выражать композицией небольших контрактов.
+27. Inventory transfer логически одна операция, но в текущей сети представлен минимум двумя последовательными SyncList patch. Межклиентская атомарность и transaction envelope пока не реализованы.
+28. Remote inventory patch применяется без локальных rules; authoritative role/permission validation должна происходить до рассылки сервером.
+29. Atomic transfer гарантируется готовой реализацией только между наследниками ItemStorageBase. Сторонняя реализация одного IItemStorage должна предоставить собственный coordinator или adapter.
+30. Infinite ItemFactory обязана создать новый объект и присвоить выданный instanceId. Шаблон и созданный экземпляр не должны разделять mutable state.
+31. Items сортируется при чтении по Name/ItemId, но wire paths используют физические индексы ItemsState. Индекс нельзя хранить как стабильную ссылку на предмет.
+32. Сцена всё ещё содержит GUID ранее использовавшегося BoxView prefab, которого нет в текущем Shared checkout. Unity scene binding требует отдельной проверки/миграции.
 
 ## 17. Checklist Перед Завершением Изменений
 
@@ -494,9 +542,13 @@ Assets/Shared не generated-каталог, но это отдельная Git-
 - [ ] Role/visibility ограничения проверяются policy; отдельно решено, нужна ли защита от недоверенного клиента.
 - [ ] Reflection discovery, если добавлена, кэшируется, диагностируется и проверена для целевого backend.
 - [ ] Reusable core имеет unit/contract tests до или вместе с Unity integration.
+- [ ] Inventory mutation проходит через Try-методы/action pipeline; нет прямой записи в ItemsState из внешнего кода.
+- [ ] ItemId уникален и стабилен, Name непустой; infinite factory использует переданный instanceId.
+- [ ] Для transfer/craft/trade проверены обе стороны, rollback и межклиентская атомарность.
+- [ ] Локальные и remote действия вызывают ожидаемые events без сетевого echo.
 - [ ] Изменялись только нужные файлы ServerCore; изменения Assets/Shared оформлены в отдельном submodule commit.
 - [ ] Проверен целевой commit Assets/Shared и отсутствие случайного submodule pointer drift.
-- [ ] Не потеряны .meta-файлы и Inspector/UnityEvent bindings SampleScene/BoxView.
+- [ ] Не потеряны .meta-файлы и Inspector/UnityEvent bindings; отсутствующий BoxView binding проверен отдельно.
 - [ ] Проверены WorldDataHolder, GameManager и DmNetworkController serialized references.
 - [ ] Если менялись модели: проверены Changed, Patched, path format, snapshot и JSON round-trip.
 - [ ] Если менялся протокол: client/server/framing/MessageType обновлены согласованно.
@@ -517,13 +569,14 @@ Assets/Shared не generated-каталог, но это отдельная Git-
 - Главная локальная orchestration сети — [DmNetworkController.cs](Assets/Scripts/DebugAndTest/DmNetworkController.cs).
 - Единый runtime state создаётся в [WorldDataHolder.cs](Assets/Scripts/DebugAndTest/WorldDataHolder.cs).
 - Связь модели с Transform/drag — [BoxDataView.cs](Assets/Scripts/DebugAndTest/BoxDataView.cs).
-- Доменные контракты — [Assets/Shared/Model](Assets/Shared/Model).
-- Sync/path/snapshot логика — [Assets/Shared/SyncSystem](Assets/Shared/SyncSystem).
-- Протокол и router/client — [Assets/Shared/Network/NetCore](Assets/Shared/Network/NetCore).
-- TCP I/O — [Assets/Shared/Network/NetTCP](Assets/Shared/Network/NetTCP).
+- Доменные контракты — [Assets/Shared/Scripts/Model](Assets/Shared/Scripts/Model).
+- Inventory API и реализации — [Assets/Shared/Scripts/Systems/InventorySystem](Assets/Shared/Scripts/Systems/InventorySystem).
+- Sync/path/snapshot логика — [SyncSystem](Assets/Shared/Scripts/Systems/SyncSystem).
+- Протокол и router/client — [NetCore](Assets/Shared/Scripts/Systems/NetworkSystem/NetCore).
+- TCP I/O — [NetTCP](Assets/Shared/Scripts/Systems/NetworkSystem/NetTCP).
 - Не меняй Boxes/Position и path grammar без проверки patch/snapshot совместимости.
 - Не переименовывай UI methods и MonoBehaviour без проверки [SampleScene.unity](Assets/Scenes/SampleScene.unity).
-- Не меняй prefab/script GUID без проверки [Assets/Shared/Prefabs/BoxView.prefab](Assets/Shared/Prefabs/BoxView.prefab).
+- Не меняй prefab/script GUID без проверки [Assets/Shared/Prefabs](Assets/Shared/Prefabs) и scene bindings.
 - Scene network values перекрывают defaults из DmNetworkController.
 - Root solution не содержит отдельного ProjectReference на PrometheusTools; shared sources попадают в Assembly-CSharp напрямую.
 - Связанный project context не найден: Assets/Shared/porject_context.md.
@@ -531,8 +584,8 @@ Assets/Shared не generated-каталог, но это отдельная Git-
 
 ---
 
-Дата генерации: 2026-08-22 (Europe/Moscow).
+Дата генерации и последнего обновления: 2026-08-22 (Europe/Moscow).
 
-Выполненные проверки: rg --files и rg по исходникам/scene/config; чтение project/solution, UPM/NuGet, ProjectSettings, Git metadata и всех значимых локальных/shared C#-файлов; проверка scene/prefab bindings; поиск тестов, asmdef и build automation; dotnet build .\ServerCore.sln --no-restore --configuration Debug --verbosity minimal.
+Выполненные проверки: rg --files и rg по исходникам/scene/config; чтение project/solution, UPM/NuGet, ProjectSettings, Git metadata и значимых локальных/shared C#-файлов; проверка scene/prefab bindings; первоначальный dotnet build ServerCore.sln; для InventorySystem — standalone compile diagnostics и временный behavioral harness на фактических InventorySystem/SyncSystem sources.
 
-Результат: C#-сборка успешна, 0 ошибок, 1 существующее предупреждение CS0628. Тесты не запускались, потому что тестов не найдено. Unity batch mode не запускался из-за существующего Temp/UnityLockfile. Не удалось определить из кода: целевую player-платформу и deploy pipeline. Требует проверки: отрисовка непустого snapshot на новом клиенте, shutdown при выгрузке сцены и целевой commit Assets/Shared.
+Результат: первоначальная C#-сборка ServerCore была успешна с 1 существующим CS0628. После реорганизации Shared generated Assembly-CSharp.csproj устарел; Unity batch import не выполнен из-за отсутствующей headless-лицензии. InventorySystem compile harness и 9/9 behavioral scenarios прошли. Постоянных Unity tests пока нет. Не удалось определить: целевую player-платформу и deploy pipeline. Требует проверки в лицензированном Editor: полный Unity compile/import, отсутствующий BoxView binding, snapshot rendering и application shutdown.
