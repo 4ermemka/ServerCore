@@ -4,7 +4,6 @@ public class ServerInputContextManager : InputContextManager
 {
     public void Start()
     {
-        CurrentContext = new MainInputContext();
-        CurrentContext.Activate();
+        SetRootContext(new MainInputContext());
     }
 }

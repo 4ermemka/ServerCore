@@ -1,0 +1,6 @@
+{
+  "name": "ServerCore.Camera.Tests",
+  "references": ["Shared"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

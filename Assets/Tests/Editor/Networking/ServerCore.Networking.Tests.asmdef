@@ -1,0 +1,6 @@
+{
+    "name": "ServerCore.Networking.Tests",
+    "references": ["Shared"],
+    "includePlatforms": ["Editor"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}

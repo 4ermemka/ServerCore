@@ -1,0 +1,6 @@
+{
+    "name": "ServerCore.Inventory",
+    "rootNamespace": "ServerCore.Inventory",
+    "references": ["Shared", "Shared.UI", "UnityEngine.UI"],
+    "autoReferenced": true
+}

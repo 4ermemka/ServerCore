@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59beb1d12fc240eb8db0dd6fc0f019c6, type: 3}
+  m_Name: ExcellentSoup
+  m_EditorClassIdentifier: ServerCore.Inventory::ServerCore.Inventory.CraftingRecipeDefinition
+  Id: excelent-soup
+  DisplayName: "\u041F\u0440\u0435\u043A\u0440\u0430\u0441\u043D\u044B\u0439 \u043E\u0432\u043E\u0449\u043D\u043E\u0439 \u0441\u0443\u043F"
+  Ingredients:
+  - Items:
+    - {fileID: 11400000, guid: 658a62280f71e104e9f8c3c03bb262c6, type: 2}
+    Tags: []
+    Quantity: 3
+    SlotIndex: 0
+  - Items: []
+    Tags:
+    - {fileID: 11400000, guid: 43338bb58169b7c4284b858b84748084, type: 2}
+    Quantity: 1
+    SlotIndex: 1
+  Result: {fileID: 11400000, guid: 4d14a7732613a7146957b0d3be88623f, type: 2}
+  ResultQuantity: 1
+  UsePlayerLevel: 0
+  Quality: 1
+  RequiredBlueprint: 
+  RequiredSkills:
+  - Id: cooking
+    Level: 3
+  RewardSkill: cooking
+  RewardExperience: 1

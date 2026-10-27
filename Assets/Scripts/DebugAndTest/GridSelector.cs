@@ -4,17 +4,31 @@ public class GridSelector : Manager
 {
     [SerializeField] GridProvider GridProvider;
     [SerializeField] private int NeighbourCount;
+    private GridProvider boundProvider;
 
     public override void Init()
     {
+        Unsubscribe();
         if (GridProvider != null)
         {
+            boundProvider = GridProvider;
             GridProvider.OnCellPointerEnter += Select;
             GridProvider.OnCellPointerExit += Deselect;
             GridProvider.OnCellPointerClick += Click;
         }
         Debug.Log($"{Name} Подключение событий произведено!");
         base.Init();
+    }
+
+    private void OnDestroy() => Unsubscribe();
+
+    private void Unsubscribe()
+    {
+        if (boundProvider == null) return;
+        boundProvider.OnCellPointerEnter -= Select;
+        boundProvider.OnCellPointerExit -= Deselect;
+        boundProvider.OnCellPointerClick -= Click;
+        boundProvider = null;
     }
 
     private void Select(IGridCell cell)

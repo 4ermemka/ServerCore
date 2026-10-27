@@ -1,0 +1,6 @@
+{
+  "name": "ServerCore.Input",
+  "rootNamespace": "ServerCore.Input",
+  "references": ["Shared", "UnityEngine.UI"],
+  "autoReferenced": true
+}

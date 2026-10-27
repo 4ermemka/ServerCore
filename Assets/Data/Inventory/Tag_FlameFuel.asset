@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be3a9c82e3d3fea49a701a8eb99606e0, type: 3}
+  m_Name: Tag_FlameFuel
+  m_EditorClassIdentifier: ServerCore.Inventory::ServerCore.Inventory.ItemTag
+  Id: flame_fuel
+  DisplayName: "\u0420\u043E\u0437\u0434\u0438\u0433"
+  Icon: {fileID: 4987901684691990599, guid: 518b73e7bd3fc574caa1d5c6e67f8735, type: 3}

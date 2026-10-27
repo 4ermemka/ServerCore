@@ -1,0 +1,6 @@
+{
+    "name": "ServerCore.Grid.Tests",
+    "references": ["Shared", "UnityEngine.UI"],
+    "includePlatforms": ["Editor"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}

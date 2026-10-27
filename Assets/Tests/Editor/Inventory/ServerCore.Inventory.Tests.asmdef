@@ -1,0 +1,6 @@
+{
+    "name": "ServerCore.Inventory.Tests",
+    "references": ["ServerCore.Inventory", "Shared", "Shared.UI", "UnityEngine.UI"],
+    "includePlatforms": ["Editor"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}

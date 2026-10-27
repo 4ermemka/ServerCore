@@ -1,9 +1,24 @@
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 [CustomEditor(typeof(GridGenerator))]
 public class GridGeneratorEditor : Editor
 {
+    // Undo восстанавливает GameObject-ы и сериализованных соседей, но не runtime-словари провайдера.
+    [InitializeOnLoadMethod]
+    private static void ConnectUndo()
+    {
+        Undo.undoRedoPerformed -= RebuildAfterUndo;
+        Undo.undoRedoPerformed += RebuildAfterUndo;
+    }
+
+    private static void RebuildAfterUndo()
+    {
+        foreach (var provider in Object.FindObjectsByType<GridProvider>(FindObjectsInactive.Include))
+            provider.RebuildIndex();
+    }
+
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
@@ -12,15 +27,17 @@ public class GridGeneratorEditor : Editor
         EditorGUILayout.Space();
         if (GUILayout.Button("Generate Grid", GUILayout.Height(30)))
         {
-            Undo.RecordObject(generator, "Generate Grid");
             generator.GenerateGrid();
-            EditorUtility.SetDirty(generator);
+            if (!Application.isPlaying) EditorSceneManager.MarkSceneDirty(generator.gameObject.scene);
         }
         if (GUILayout.Button("Clear Grid", GUILayout.Height(20)))
         {
-            Undo.RecordObject(generator, "Clear Grid");
+            Undo.IncrementCurrentGroup();
+            int group = Undo.GetCurrentGroup();
+            Undo.SetCurrentGroupName("Clear Grid");
             generator.ClearExisting();
-            EditorUtility.SetDirty(generator);
+            Undo.CollapseUndoOperations(group);
+            if (!Application.isPlaying) EditorSceneManager.MarkSceneDirty(generator.gameObject.scene);
         }
     }
 
