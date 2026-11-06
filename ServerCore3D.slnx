@@ -1,18 +1,18 @@
 ﻿<Solution>
-  <Project Path="ServerCore.Inventory.csproj" />
   <Project Path="Unity.RenderPipelines.Universal.Editor.csproj" />
   <Project Path="Shared.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Shared.UI.csproj" />
+  <Project Path="ServerCore.Inventory.csproj" />
   <Project Path="ServerCore.World.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="ServerCore.UI.Tests.csproj" />
   <Project Path="ServerCore.Networking.Tests.csproj" />
   <Project Path="ServerCore.World.Tests.csproj" />
+  <Project Path="ServerCore.Input.csproj" />
   <Project Path="ServerCore.Planning.Tests.csproj" />
   <Project Path="ServerCore.Grid.Tests.csproj" />
-  <Project Path="Shared.UI.csproj" />
-  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="ServerCore.Inventory.Tests.csproj" />
-  <Project Path="ServerCore.Input.csproj" />
   <Project Path="ServerCore.Input.Tests.csproj" />
   <Project Path="ServerCore.Camera.Tests.csproj" />
-  <Project Path="ServerCore.UI.Tests.csproj" />
 </Solution>
